@@ -26,7 +26,7 @@ func normalizeConfig(cfg *Config) {
 	}
 
 	if cfg.DatabaseURL == "" {
-		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5432/bookshelf?sslmode=disable"
+		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5432/auth?sslmode=disable"
 	}
 
 	if cfg.JWTSecret == "" {
