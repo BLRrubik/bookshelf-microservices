@@ -76,7 +76,7 @@ func main() {
 	}
 }
 
-func registerRoutes(r *chi.Mux, handlers *handler.Handler) {
+func registerRoutes(r *chi.Mux, handlers *handler.AuthHandler) {
 	r.Get("/health", handlers.Health)
 	r.Get("/ready", handlers.Ready)
 }

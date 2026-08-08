@@ -10,25 +10,25 @@ import (
 	"time"
 )
 
-type Handler struct {
+type AuthHandler struct {
 	userService *service.UserService
 	jwtSecret   string
 }
 
-func New(userService *service.UserService, jwtSecret string) *Handler {
-	return &Handler{
+func New(userService *service.UserService, jwtSecret string) *AuthHandler {
+	return &AuthHandler{
 		userService: userService,
 		jwtSecret:   jwtSecret,
 	}
 }
 
-func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"status":"ok", "service":"auth-service", "timestamp":%d}`, time.Now().Unix())))
 }
 
-func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
+func (h *AuthHandler) Ready(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(
