@@ -10,12 +10,10 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (h *Handler) ListBookReviews(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) ListBookReviews(w http.ResponseWriter, r *http.Request) {
 	bookID := chi.URLParam(r, "bookId")
 
-	page, limit := extractPageAndLimit(r)
-
-	resp, err := h.services.ReviewService.ListByBookID(r.Context(), bookID, page, limit)
+	resp, err := h.services.ReviewService.ListByBook(r.Context(), bookID)
 	if err != nil {
 		if errors.Is(err, service.ErrBookNotFound) {
 			writeError(w, r, http.StatusNotFound, "book not found")
@@ -31,7 +29,7 @@ func (h *Handler) ListBookReviews(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *Handler) GetReview(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) GetReview(w http.ResponseWriter, r *http.Request) {
 	reviewID := chi.URLParam(r, "reviewId")
 
 	resp, err := h.services.ReviewService.GetByID(r.Context(), reviewID)
@@ -50,7 +48,7 @@ func (h *Handler) GetReview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 	bookID := chi.URLParam(r, "bookId")
 
@@ -84,7 +82,7 @@ func (h *Handler) CreateReview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, resp)
 }
 
-func (h *Handler) UpdateReview(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 	reviewID := chi.URLParam(r, "reviewId")
 
@@ -113,7 +111,7 @@ func (h *Handler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *Handler) DeleteReview(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 	reviewID := chi.URLParam(r, "reviewId")
 

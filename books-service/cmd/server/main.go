@@ -75,13 +75,12 @@ func main() {
 	}
 }
 
-func registerRoutes(r *chi.Mux, handlers *handler.Handler) {
+func registerRoutes(r *chi.Mux, handlers *handler.BookHandler) {
 	r.Get("/health", handlers.Health)
-	r.Get("/ready", handlers.Ready)
 
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/books", handlers.ListBooks)
-		r.Get("/books/{bookId}", handlers.GetBook)
+		r.Get("/books", handlers.List)
+		r.Get("/books/{bookId}", handlers.GetByID)
 		r.Get("/books/{bookId}/reviews", handlers.ListBookReviews)
 
 		r.Get("/reviews/{reviewId} ", handlers.GetReview)
@@ -90,9 +89,9 @@ func registerRoutes(r *chi.Mux, handlers *handler.Handler) {
 		r.Group(func(r chi.Router) {
 			//r.Use(handlers.AuthMiddleware)
 
-			r.Post("/books", handlers.CreateBook)
-			r.Put("/books/{bookId}", handlers.UpdateBook)
-			r.Delete("/books/{bookId}", handlers.DeleteBook)
+			r.Post("/books", handlers.Create)
+			r.Put("/books/{bookId}", handlers.Update)
+			r.Delete("/books/{bookId}", handlers.Delete)
 			r.Post("/books/{bookId}/reviews", handlers.CreateReview)
 
 			r.Put("/reviews/{reviewId} ", handlers.UpdateReview)

@@ -111,7 +111,7 @@ func (s *BookService) Update(
 		return nil, err
 	}
 
-	//creator, err := s.userRepo.GetByID(ctx, book.CreatedBy)
+	//creator, err := s.userRepo.GetByID(ctx, book.UserID)
 	//if err != nil {
 	//	return nil, ErrBookNotFound
 	//}

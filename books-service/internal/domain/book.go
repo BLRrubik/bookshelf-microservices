@@ -26,7 +26,7 @@ func (b *Book) ToResponse() BookResponse {
 		ID:            b.ID,
 		Title:         b.Title,
 		Author:        b.Author,
-		CreatedBy:     b.UserID,
+		UserID:        b.UserID,
 		CreatedAt:     b.CreatedAt,
 		UpdatedAt:     b.UpdatedAt,
 		Description:   utils.NullToString(b.Description),
@@ -43,7 +43,7 @@ type BookResponse struct {
 	ID            string    `json:"id"`
 	Title         string    `json:"title"`
 	Author        string    `json:"author"`
-	CreatedBy     string    `json:"created_by"`
+	UserID        string    `json:"user_id"`
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 	Description   *string   `json:"description"`
@@ -56,6 +56,7 @@ type BookResponse struct {
 type CreateBookRequest struct {
 	Title         string  `json:"title"`
 	Author        string  `json:"author"`
+	UserID        string  `json:"user_id"`
 	Description   *string `json:"description,omitempty"`
 	ISBN          *string `json:"isbn,omitempty"`
 	PublishedYear *int32  `json:"published_year,omitempty"`

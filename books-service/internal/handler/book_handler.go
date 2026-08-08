@@ -10,20 +10,33 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (h *Handler) ListBooks(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) List(w http.ResponseWriter, r *http.Request) {
 	filter := extractFilter(r)
 
-	resp, err := h.services.BookService.List(r.Context(), filter)
+	books, count, err := h.services.BookService.List(r.Context(), filter)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, err.Error())
 
 		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	booksResp := make([]domain.BookResponse, len(books))
+	for i, book := range books {
+		booksResp[i] = book.ToResponse()
+	}
+
+	writeJSON(w, http.StatusOK, domain.BookListResponse{
+		Data: booksResp,
+		Pagination: domain.Pagination{
+			Total:      count,
+			Page:       filter.Page,
+			Limit:      filter.Limit,
+			TotalPages: (count + filter.Limit - 1) / filter.Limit,
+		},
+	})
 }
 
-func (h *Handler) GetBook(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	bookID := chi.URLParam(r, "bookId")
 
 	resp, err := h.services.BookService.GetByID(r.Context(), bookID)
@@ -42,7 +55,7 @@ func (h *Handler) GetBook(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resp)
 }
 
-func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 
 	var req domain.CreateBookRequest
@@ -69,7 +82,7 @@ func (h *Handler) CreateBook(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, resp)
 }
 
-func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 	bookID := chi.URLParam(r, "bookId")
 
@@ -96,7 +109,7 @@ func (h *Handler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, book)
 }
 
-func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
+func (h *BookHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 	bookID := chi.URLParam(r, "bookId")
 
