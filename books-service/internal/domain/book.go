@@ -81,7 +81,7 @@ type UpdateBookRequest struct {
 	PublishedYear *int32  `json:"published_year,omitempty"`
 }
 
-type BookFilter struct {
+type ListParams struct {
 	Search string `json:"search"`
 	Sort   string `json:"sort"`
 	Order  string `json:"order"`
@@ -89,7 +89,7 @@ type BookFilter struct {
 	Limit  int    `json:"limit"`
 }
 
-func (b *BookFilter) Normalize() {
+func (b *ListParams) Normalize() {
 	if b.Page <= 0 {
 		b.Page = 1
 	}

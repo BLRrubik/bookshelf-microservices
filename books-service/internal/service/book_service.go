@@ -63,7 +63,7 @@ func (s *BookService) GetByID(ctx context.Context, id string) (*domain.BookRespo
 	return &bookResponse, nil
 }
 
-func (s *BookService) List(ctx context.Context, filter domain.BookFilter) (*domain.BookListResponse, error) {
+func (s *BookService) List(ctx context.Context, filter domain.ListParams) (*domain.BookListResponse, error) {
 	filter.Normalize()
 
 	books, count, err := s.bookRepo.List(ctx, filter)

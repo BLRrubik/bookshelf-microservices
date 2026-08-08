@@ -116,14 +116,14 @@ func (h *Handler) DeleteBook(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusNoContent, nil)
 }
 
-func extractFilter(r *http.Request) domain.BookFilter {
+func extractFilter(r *http.Request) domain.ListParams {
 	page, limit := extractPageAndLimit(r)
 
 	search := r.URL.Query().Get("search")
 	sort := r.URL.Query().Get("sort")
 	order := r.URL.Query().Get("order")
 
-	return domain.BookFilter{
+	return domain.ListParams{
 		Page:   page,
 		Limit:  limit,
 		Search: search,

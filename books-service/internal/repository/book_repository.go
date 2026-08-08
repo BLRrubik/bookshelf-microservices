@@ -44,6 +44,20 @@ GROUP BY b.id
 ORDER BY %s %s
 LIMIT $2 OFFSET $3
 `
+	listBooksByUserIDQuery = `
+SELECT 
+	b.id, b.title, b.author, 
+	b.description, b.isbn, b.published_year,
+	b.created_by, b.created_at, b.updated_at,
+	AVG(r.rating) as average_rating,
+	COUNT(r.id) as reviews_count
+FROM books AS b
+LEFT JOIN reviews AS r ON b.id = r.book_id
+WHERE b.created_by = $1 AND b.title ILIKE $2
+GROUP BY b.id
+ORDER BY %s %s
+LIMIT $3 OFFSET $4
+`
 	updateBookQuery = `
 UPDATE books
 SET title=$1, author=$2, description=$3, isbn=$4, published_year=$5
@@ -100,18 +114,45 @@ func (br *BookRepository) GetByID(ctx context.Context, id string) (*domain.Book,
 	return &book, nil
 }
 
-func (br *BookRepository) List(ctx context.Context, filter domain.BookFilter) ([]domain.Book, int, error) {
+func (br *BookRepository) List(ctx context.Context, params domain.ListParams) ([]domain.Book, int, error) {
 	var books []domain.Book
 	var count int
 
-	offset := (filter.Page - 1) * filter.Limit
+	offset := (params.Page - 1) * params.Limit
 
 	err := br.db.SelectContext(
 		ctx,
 		&books,
-		fmt.Sprintf(listBooksQuery, filter.Sort, filter.Order),
-		"%"+filter.Search+"%",
-		filter.Limit,
+		fmt.Sprintf(listBooksQuery, params.Sort, params.Order),
+		"%"+params.Search+"%",
+		params.Limit,
+		offset,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	err = br.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM books")
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return books, count, nil
+}
+
+func (br *BookRepository) ListByUserID(ctx context.Context, userID string, params domain.ListParams) ([]domain.Book, int, error) {
+	var books []domain.Book
+	var count int
+
+	offset := (params.Page - 1) * params.Limit
+
+	err := br.db.SelectContext(
+		ctx,
+		&books,
+		fmt.Sprintf(listBooksByUserIDQuery, params.Sort, params.Order),
+		userID,
+		"%"+params.Search+"%",
+		params.Limit,
 		offset,
 	)
 	if err != nil {
