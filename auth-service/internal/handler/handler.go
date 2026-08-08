@@ -27,14 +27,6 @@ func (h *AuthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(fmt.Sprintf(`{"status":"ok", "service":"auth-service", "timestamp":%d}`, time.Now().Unix())))
 }
 
-func (h *AuthHandler) Ready(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(
-		fmt.Sprintf(`{"status":"ok", "service":"auth-service", "timestamp":%d}, "checks":{"database": "ok"}`, time.Now().Unix()),
-	))
-}
-
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
@@ -61,29 +53,6 @@ func writeError(w http.ResponseWriter, r *http.Request, status int, message stri
 
 	if reqID, ok := r.Context().Value(requestIDKey).(string); ok {
 		resp.Error.RequestID = reqID
-	}
-
-	bytes, err := json.Marshal(resp)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-
-		return
-	}
-
-	_, _ = w.Write(bytes)
-}
-
-func writeValidationError(w http.ResponseWriter, r *http.Request, details []domain.ErrorDetail) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusBadRequest)
-
-	resp := domain.ErrorResponse{
-		Error: domain.ErrorData{
-			Code:      http.StatusBadRequest,
-			Message:   "validation error",
-			RequestID: r.Context().Value(requestIDKey).(string),
-			Details:   details,
-		},
 	}
 
 	bytes, err := json.Marshal(resp)

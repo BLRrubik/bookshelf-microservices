@@ -78,5 +78,18 @@ func main() {
 
 func registerRoutes(r *chi.Mux, handlers *handler.AuthHandler) {
 	r.Get("/health", handlers.Health)
-	r.Get("/ready", handlers.Ready)
+
+	r.Route("/api/v1", func(r chi.Router) {
+		// Публичные роуты — без авторизации
+		r.Post("/auth/register", handlers.Register)
+		r.Post("/auth/login", handlers.Login)
+
+		// Защищённые роуты — с AuthMiddleware
+		r.Group(func(r chi.Router) {
+			r.Use(handlers.AuthMiddleware)
+
+			r.Get("/users/me", handlers.GetMe)
+			r.Put("/users/me", handlers.UpdateMe)
+		})
+	})
 }
