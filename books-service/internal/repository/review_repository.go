@@ -25,7 +25,6 @@ WHERE id = $1
 SELECT id, user_id, book_id, rating, title, content, created_at, updated_at
 FROM reviews
 WHERE book_id = $1
-LIMIT $2 OFFSET $3
 `
 	updateReviewQuery = `
 UPDATE reviews
@@ -88,36 +87,20 @@ func (rr *ReviewRepository) GetByID(ctx context.Context, id string) (*domain.Rev
 	return &review, nil
 }
 
-func (rr *ReviewRepository) ListByBookID(
-	ctx context.Context,
-	bookID string,
-	page int, limit int,
-) ([]domain.Review, int, error) {
-	var (
-		reviews []domain.Review
-		count   int
-	)
-
-	offset := (page - 1) * limit
+func (rr *ReviewRepository) ListByBookID(ctx context.Context, bookID string) ([]domain.Review, error) {
+	var reviews []domain.Review
 
 	err := rr.db.SelectContext(
 		ctx,
 		&reviews,
 		listReviewsByBookIDQuery,
 		bookID,
-		limit,
-		offset,
 	)
 	if err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
-	err = rr.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM reviews WHERE book_id = $1", bookID)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	return reviews, count, nil
+	return reviews, nil
 }
 
 func (rr *ReviewRepository) Update(ctx context.Context, review *domain.Review) error {
