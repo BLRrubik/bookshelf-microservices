@@ -3,6 +3,8 @@ package main
 import (
 	"bookshelf/auth-service/internal/config"
 	"bookshelf/auth-service/internal/handler"
+	"bookshelf/auth-service/internal/repository"
+	"bookshelf/auth-service/internal/service"
 	"context"
 	"log"
 	"net/http"
@@ -27,7 +29,9 @@ func main() {
 	}
 	defer db.Close()
 
-	handlers := handler.New()
+	userRepo := repository.NewUserRepository(db)
+	userService := service.NewUserService(userRepo, cfg.JWTSecret)
+	handlers := handler.New(userService, cfg.JWTSecret)
 
 	r := chi.NewRouter()
 

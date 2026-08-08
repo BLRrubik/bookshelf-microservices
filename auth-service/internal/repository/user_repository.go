@@ -36,6 +36,13 @@ UPDATE users
 SET username = $1, email = $2, password_hash = $3
 WHERE id = $4;
 `
+	existsUserByUsernameQuery = `
+SELECT EXISTS(SELECT id FROM users WHERE username = $1);
+`
+
+	existsUserByEmailQuery = `
+SELECT EXISTS(SELECT id FROM users WHERE email = $1);
+`
 )
 
 var (
@@ -113,4 +120,24 @@ func (ur *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	}
 
 	return nil
+}
+
+func (ur *UserRepository) UsernameExists(ctx context.Context, username string) bool {
+	var exists bool
+	err := ur.db.GetContext(ctx, &exists, existsUserByUsernameQuery, username)
+	if err != nil {
+		return false
+	}
+
+	return exists
+}
+
+func (ur *UserRepository) EmailExists(ctx context.Context, email string) bool {
+	var exists bool
+	err := ur.db.GetContext(ctx, &exists, existsUserByEmailQuery, email)
+	if err != nil {
+		return false
+	}
+
+	return exists
 }

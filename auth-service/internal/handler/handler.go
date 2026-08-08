@@ -11,12 +11,15 @@ import (
 )
 
 type Handler struct {
-	services  *service.Service
-	jwtSecret string
+	userService *service.UserService
+	jwtSecret   string
 }
 
-func New() *Handler {
-	return &Handler{}
+func New(userService *service.UserService, jwtSecret string) *Handler {
+	return &Handler{
+		userService: userService,
+		jwtSecret:   jwtSecret,
+	}
 }
 
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
