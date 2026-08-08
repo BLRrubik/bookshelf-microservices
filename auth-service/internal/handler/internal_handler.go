@@ -5,6 +5,7 @@ import (
 	"bookshelf/auth-service/internal/service"
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -34,12 +35,16 @@ func (h *InternalHandler) VerifyToken(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	res := h.userService.ValidateToken(req.Token)
-	if res.Error != "" {
-		writeError(w, r, http.StatusBadRequest, res.Error)
+	res, err := h.userService.ValidateToken(req.Token)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, &domain.VerifyResponse{Error: err.Error()})
 
 		return
 	}
 
-	writeJSON(w, http.StatusOK, res)
+	writeJSON(w, http.StatusOK, &domain.VerifyResponse{
+		UserID:    res.UserID,
+		Valid:     true,
+		ExpiresAt: res.ExpiresAt.Format(time.RFC3339),
+	})
 }

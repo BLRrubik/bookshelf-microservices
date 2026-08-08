@@ -98,9 +98,14 @@ type VerifyRequest struct {
 	Token string `json:"token"`
 }
 
+type TokenClaims struct {
+	UserID    string    `json:"user_id"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
 type VerifyResponse struct {
 	Valid     bool   `json:"valid"`
 	UserID    string `json:"user_id"`
-	ExpiresAt int64  `json:"expires_at"`
+	ExpiresAt string `json:"expires_at"`
 	Error     string `json:"error,omitempty"`
 }
