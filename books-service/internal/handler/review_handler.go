@@ -10,10 +10,34 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func (h *BookHandler) ListBookReviews(w http.ResponseWriter, r *http.Request) {
+type ReviewHandler struct {
+	svc *service.ReviewService
+}
+
+func NewReviewHandler(svc *service.ReviewService) *ReviewHandler {
+	return &ReviewHandler{svc: svc}
+}
+
+func (h *ReviewHandler) RegisterRoutes(r chi.Router) {
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/books/{bookId}/reviews", h.List)
+		r.Get("/reviews/{id} ", h.GetReview)
+
+		r.Group(func(r chi.Router) {
+			//r.Use(handlers.AuthMiddleware)
+			r.Post("/books/{bookId}/reviews", h.Create)
+			r.Put("/reviews/{id} ", h.Update)
+			r.Delete("/reviews/{id} ", h.Delete)
+
+		})
+
+	})
+}
+
+func (h *ReviewHandler) List(w http.ResponseWriter, r *http.Request) {
 	bookID := chi.URLParam(r, "bookId")
 
-	resp, err := h.services.ReviewService.ListByBook(r.Context(), bookID)
+	reviews, err := h.svc.ListByBook(r.Context(), bookID)
 	if err != nil {
 		if errors.Is(err, service.ErrBookNotFound) {
 			writeError(w, r, http.StatusNotFound, "book not found")
@@ -26,13 +50,18 @@ func (h *BookHandler) ListBookReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	reviewsResp := make([]domain.ReviewResponse, len(reviews))
+	for i, review := range reviews {
+		reviewsResp[i] = review.ToResponse()
+	}
+
+	writeJSON(w, http.StatusOK, reviewsResp)
 }
 
-func (h *BookHandler) GetReview(w http.ResponseWriter, r *http.Request) {
-	reviewID := chi.URLParam(r, "reviewId")
+func (h *ReviewHandler) GetReview(w http.ResponseWriter, r *http.Request) {
+	reviewID := chi.URLParam(r, "id")
 
-	resp, err := h.services.ReviewService.GetByID(r.Context(), reviewID)
+	review, err := h.svc.GetByID(r.Context(), reviewID)
 	if err != nil {
 		if errors.Is(err, service.ErrReviewNotFound) {
 			writeError(w, r, http.StatusNotFound, "review not found")
@@ -45,10 +74,10 @@ func (h *BookHandler) GetReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(w, http.StatusOK, review.ToResponse())
 }
 
-func (h *BookHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 	bookID := chi.URLParam(r, "bookId")
 
@@ -66,7 +95,7 @@ func (h *BookHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.services.ReviewService.Create(r.Context(), userID, bookID, req)
+	review, err := h.svc.Create(r.Context(), userID, bookID, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrBookNotFound),
@@ -79,12 +108,12 @@ func (h *BookHandler) CreateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, resp)
+	writeJSON(w, http.StatusCreated, review)
 }
 
-func (h *BookHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewHandler) Update(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
-	reviewID := chi.URLParam(r, "reviewId")
+	reviewID := chi.URLParam(r, "id")
 
 	var req domain.UpdateReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -94,7 +123,7 @@ func (h *BookHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	resp, err := h.services.ReviewService.Update(r.Context(), reviewID, userID, req)
+	review, err := h.svc.Update(r.Context(), reviewID, userID, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrReviewNotFound):
@@ -108,14 +137,14 @@ func (h *BookHandler) UpdateReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(w, http.StatusOK, review.ToResponse())
 }
 
-func (h *BookHandler) DeleteReview(w http.ResponseWriter, r *http.Request) {
+func (h *ReviewHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
-	reviewID := chi.URLParam(r, "reviewId")
+	reviewID := chi.URLParam(r, "id")
 
-	if err := h.services.ReviewService.Delete(r.Context(), reviewID, userID); err != nil {
+	if err := h.svc.Delete(r.Context(), reviewID, userID); err != nil {
 		switch {
 		case errors.Is(err, service.ErrReviewNotFound):
 			writeError(w, r, http.StatusNotFound, "review not found")

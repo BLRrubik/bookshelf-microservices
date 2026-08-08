@@ -10,6 +10,34 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+type BookHandler struct {
+	srv *service.BookService
+}
+
+func NewBookHandler(bookService *service.BookService) *BookHandler {
+	return &BookHandler{
+		srv: bookService,
+	}
+}
+
+func (h *BookHandler) RegisterRoutes(r chi.Router) {
+
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/books", h.List)
+		r.Get("/books/{id}", h.GetByID)
+
+		// Защищённые роуты — с AuthMiddleware
+		r.Group(func(r chi.Router) {
+			//r.Use(handlers.AuthMiddleware)
+
+			r.Post("/books", h.Create)
+			r.Put("/books/{id}", h.Update)
+			r.Delete("/books/{id}", h.Delete)
+
+		})
+	})
+}
+
 func (h *BookHandler) List(w http.ResponseWriter, r *http.Request) {
 	filter := extractFilter(r)
 

@@ -8,19 +8,30 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
-type BookHandler struct {
-	srv *service.BookService
+type Handler struct {
+	bookHandler   *BookHandler
+	reviewHandler *ReviewHandler
 }
 
-func NewBookHandler(bookService *service.BookService) *BookHandler {
-	return &BookHandler{
-		srv: bookService,
+func NewHandler(service *service.Service) *Handler {
+	return &Handler{
+		bookHandler:   NewBookHandler(service.BookService),
+		reviewHandler: NewReviewHandler(service.ReviewService),
 	}
 }
 
-func (h *BookHandler) Health(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Get("/health", h.Health)
+
+	h.bookHandler.RegisterRoutes(r)
+	h.reviewHandler.RegisterRoutes(r)
+}
+
+func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"status":"ok", "service":"books-service", "timestamp":%d}`, time.Now().Unix())))

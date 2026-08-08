@@ -76,26 +76,5 @@ func main() {
 }
 
 func registerRoutes(r *chi.Mux, handlers *handler.BookHandler) {
-	r.Get("/health", handlers.Health)
 
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/books", handlers.List)
-		r.Get("/books/{id}", handlers.GetByID)
-		r.Get("/books/{id}/reviews", handlers.ListBookReviews)
-
-		r.Get("/reviews/{reviewId} ", handlers.GetReview)
-
-		// Защищённые роуты — с AuthMiddleware
-		r.Group(func(r chi.Router) {
-			//r.Use(handlers.AuthMiddleware)
-
-			r.Post("/books", handlers.Create)
-			r.Put("/books/{id}", handlers.Update)
-			r.Delete("/books/{id}", handlers.Delete)
-			r.Post("/books/{bookId}/reviews", handlers.CreateReview)
-
-			r.Put("/reviews/{reviewId} ", handlers.UpdateReview)
-			r.Delete("/reviews/{reviewId} ", handlers.DeleteReview)
-		})
-	})
 }
