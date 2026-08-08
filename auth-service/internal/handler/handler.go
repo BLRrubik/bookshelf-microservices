@@ -23,12 +23,12 @@ func NewHandler(userService *service.UserService, jwtSecret string) *Handler {
 	}
 }
 
-func (h *Handler) RegisterRoutes(r chi.Router) {
+func (h *Handler) RegisterRoutes(r chi.Router, serviceKey string) {
 	r.Get("/health", h.Health)
 	r.Get("/ready", h.Health)
 
 	h.AuthHandler.RegisterRoutes(r)
-	h.InternalHandler.RegisterRoutes(r)
+	h.InternalHandler.RegisterRoutes(r, serviceKey)
 }
 
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {

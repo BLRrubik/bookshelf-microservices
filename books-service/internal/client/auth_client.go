@@ -31,17 +31,20 @@ type UserPublic struct {
 
 type AuthClient struct {
 	httpClient *HTTPClient
+	serviceKey string
 }
 
-func NewAuthClient(baseURL string, timeout time.Duration) *AuthClient {
+func NewAuthClient(baseURL string, timeout time.Duration, serviceKey string) *AuthClient {
 	return &AuthClient{
 		httpClient: NewHTTPClient(baseURL, timeout),
+		serviceKey: serviceKey,
 	}
 }
 
 func (c *AuthClient) VerifyToken(ctx context.Context, token string) (*VerifyResponse, error) {
 	headers := map[string]string{
-		"Content-Type": "application/json",
+		"Content-Type":  "application/json",
+		"X-Service-Key": c.serviceKey,
 	}
 
 	req := VerifyRequest{
@@ -71,7 +74,8 @@ func (c *AuthClient) VerifyToken(ctx context.Context, token string) (*VerifyResp
 
 func (c *AuthClient) GetUsersByIDs(ctx context.Context, ids []string) ([]UserPublic, error) {
 	headers := map[string]string{
-		"Content-Type": "application/json",
+		"Content-Type":  "application/json",
+		"X-Service-Key": c.serviceKey,
 	}
 
 	req := GetUsersRequest{

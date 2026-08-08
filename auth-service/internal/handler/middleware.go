@@ -34,3 +34,27 @@ func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
+
+const serviceKeyHeader = "X-Service-Key"
+
+func ServiceKeyMiddleware(expectedKey string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			serviceKey := r.Header.Get(serviceKeyHeader)
+
+			if serviceKey == "" {
+				writeError(w, r, http.StatusUnauthorized, "missing service key")
+
+				return
+			}
+
+			if serviceKey != expectedKey {
+				writeError(w, r, http.StatusForbidden, "invalid service key")
+
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}

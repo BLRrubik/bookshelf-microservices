@@ -30,7 +30,7 @@ func main() {
 	}
 	defer db.Close()
 
-	authClient := client.NewAuthClient("http://localhost:8081", time.Second*5)
+	authClient := client.NewAuthClient("http://localhost:8081", time.Second*5, cfg.ServiceKey)
 
 	repos := repository.New(db)
 	services := service.New(repos, cfg.AuthServiceURL)

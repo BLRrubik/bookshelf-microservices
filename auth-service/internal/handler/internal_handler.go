@@ -20,8 +20,9 @@ func NewInternalHandler(svc *service.UserService) *InternalHandler {
 	}
 }
 
-func (h *InternalHandler) RegisterRoutes(r chi.Router) {
+func (h *InternalHandler) RegisterRoutes(r chi.Router, serviceKey string) {
 	r.Route("/internal/v1", func(r chi.Router) {
+		r.Use(ServiceKeyMiddleware(serviceKey))
 		r.Post("/auth/verify", h.VerifyToken)
 		r.Post("/users/batch", h.GetUsersByIDs)
 	})

@@ -47,7 +47,7 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	handlers.RegisterRoutes(r)
+	handlers.RegisterRoutes(r, cfg.ServiceKey)
 
 	server := &http.Server{
 		ReadTimeout:  5 * time.Second,

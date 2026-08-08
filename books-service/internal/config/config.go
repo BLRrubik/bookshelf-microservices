@@ -6,6 +6,7 @@ type Config struct {
 	Port           string
 	DatabaseURL    string
 	AuthServiceURL string
+	ServiceKey     string
 }
 
 func Load() *Config {
@@ -13,6 +14,7 @@ func Load() *Config {
 		Port:           os.Getenv("PORT"),
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		AuthServiceURL: os.Getenv("AUTH_SERVICE_URL"),
+		ServiceKey:     os.Getenv("SERVICE_KEY"),
 	}
 
 	normalizeConfig(cfg)
@@ -31,5 +33,9 @@ func normalizeConfig(cfg *Config) {
 
 	if cfg.AuthServiceURL == "" {
 		cfg.AuthServiceURL = "http://localhost:8081"
+	}
+
+	if cfg.ServiceKey == "" {
+		cfg.ServiceKey = "serviceKey"
 	}
 }
