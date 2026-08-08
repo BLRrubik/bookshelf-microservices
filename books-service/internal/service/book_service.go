@@ -38,6 +38,7 @@ func (s *BookService) Create(ctx context.Context, userID string, req domain.Crea
 	book := domain.Book{
 		Title:         req.Title,
 		Author:        req.Author,
+		UserID:        userID,
 		Description:   utils.StringToNull(req.Description),
 		ISBN:          utils.StringToNull(req.ISBN),
 		PublishedYear: utils.Int32ToNull(req.PublishedYear),

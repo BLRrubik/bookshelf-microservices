@@ -37,6 +37,14 @@ func (s *ReviewService) Create(
 	bookID string,
 	req domain.CreateReviewRequest,
 ) (*domain.ReviewResponse, error) {
+	if req.Rating < 1 || req.Rating > 5 {
+		return nil, errors.New("rating must be between 1 and 5")
+	}
+
+	if len(req.Content) < 10 {
+		return nil, errors.New("content must be at least 10 characters")
+	}
+
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
 		if errors.Is(err, ErrBookNotFound) {
@@ -57,6 +65,7 @@ func (s *ReviewService) Create(
 
 	review := &domain.Review{
 		BookID:  book.ID,
+		UserID:  userID,
 		Rating:  req.Rating,
 		Title:   utils.StringToNull(req.Title),
 		Content: req.Content,
