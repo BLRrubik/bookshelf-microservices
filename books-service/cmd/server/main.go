@@ -30,7 +30,7 @@ func main() {
 
 	repos := repository.New(db)
 	services := service.New(repos, cfg.AuthServiceURL)
-	handlers := handler.New(services, cfg.AuthServiceURL)
+	handlers := handler.NewBookHandler(services.BookService)
 
 	r := chi.NewRouter()
 
@@ -80,8 +80,8 @@ func registerRoutes(r *chi.Mux, handlers *handler.BookHandler) {
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/books", handlers.List)
-		r.Get("/books/{bookId}", handlers.GetByID)
-		r.Get("/books/{bookId}/reviews", handlers.ListBookReviews)
+		r.Get("/books/{id}", handlers.GetByID)
+		r.Get("/books/{id}/reviews", handlers.ListBookReviews)
 
 		r.Get("/reviews/{reviewId} ", handlers.GetReview)
 
@@ -90,8 +90,8 @@ func registerRoutes(r *chi.Mux, handlers *handler.BookHandler) {
 			//r.Use(handlers.AuthMiddleware)
 
 			r.Post("/books", handlers.Create)
-			r.Put("/books/{bookId}", handlers.Update)
-			r.Delete("/books/{bookId}", handlers.Delete)
+			r.Put("/books/{id}", handlers.Update)
+			r.Delete("/books/{id}", handlers.Delete)
 			r.Post("/books/{bookId}/reviews", handlers.CreateReview)
 
 			r.Put("/reviews/{reviewId} ", handlers.UpdateReview)

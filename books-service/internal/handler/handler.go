@@ -11,14 +11,12 @@ import (
 )
 
 type BookHandler struct {
-	services  *service.Service
-	jwtSecret string
+	bookService *service.BookService
 }
 
-func New(services *service.Service, jwtSecret string) *BookHandler {
+func NewBookHandler(bookService *service.BookService) *BookHandler {
 	return &BookHandler{
-		services:  services,
-		jwtSecret: jwtSecret,
+		bookService: bookService,
 	}
 }
 
