@@ -7,7 +7,22 @@
 ## Архитектура
 
 - **auth-service** (порт 8081) — регистрация, авторизация, управление пользователями
-- **books-service** (порт 8082) — каталог книг, рецензии
+Файлы auth-service определены: 
+- domain/user.go
+- handler/auth_handler.go
+- service/user_service.go
+- repository/user_repository.go
+
+- **books-service** (порт 8082) — каталог книг, рецензии 
+Файлы books-service определены: 
+- domain/book.go
+- domain/review.go
+- handler/book_handler.go
+- handler/review_handler.go
+- service/book_service.go
+- service/review_service.go
+- repository/book_repository.go
+- repository/review_repository.go
 
 Каждый сервис имеет свою базу данных (Database per Service).
 
