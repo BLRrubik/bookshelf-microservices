@@ -30,7 +30,7 @@ func main() {
 
 	repos := repository.New(db)
 	services := service.New(repos, cfg.AuthServiceURL)
-	handlers := handler.NewBookHandler(services.BookService)
+	handlers := handler.NewHandler(services)
 
 	r := chi.NewRouter()
 
@@ -46,7 +46,7 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	registerRoutes(r, handlers)
+	handlers.RegisterRoutes(r)
 
 	server := &http.Server{
 		ReadTimeout:  5 * time.Second,
@@ -73,8 +73,4 @@ func main() {
 	if err = server.Shutdown(ctx); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func registerRoutes(r *chi.Mux, handlers *handler.BookHandler) {
-
 }
