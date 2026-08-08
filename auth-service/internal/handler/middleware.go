@@ -22,8 +22,8 @@ func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		res := h.userService.ValidateToken(splitToken[1])
-		if res.Error != "" {
+		res, err := h.userService.ValidateToken(splitToken[1])
+		if err != nil {
 			writeError(w, r, http.StatusUnauthorized, "Invalid or expired token")
 
 			return

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 const (
@@ -46,7 +47,7 @@ SELECT EXISTS(SELECT id FROM users WHERE email = $1);
 	getUsersByIDsQuery = `
 SELECT id, username, email, password_hash, created_at, updated_at
 FROM users
-WHERE id IN ($1);
+WHERE id = ANY ($1);
 `
 )
 
@@ -150,7 +151,7 @@ func (r *UserRepository) EmailExists(ctx context.Context, email string) bool {
 func (r *UserRepository) GetByIDs(ctx context.Context, ids []string) ([]domain.User, error) {
 	var users []domain.User
 
-	if err := r.db.SelectContext(ctx, &users, getUsersByIDsQuery, ids); err != nil {
+	if err := r.db.SelectContext(ctx, &users, getUsersByIDsQuery, pq.Array(ids)); err != nil {
 		return nil, err
 	}
 
