@@ -13,7 +13,7 @@ import (
 func (h *BookHandler) List(w http.ResponseWriter, r *http.Request) {
 	filter := extractFilter(r)
 
-	books, count, err := h.bookService.List(r.Context(), filter)
+	books, count, err := h.srv.List(r.Context(), filter)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, err.Error())
 
@@ -39,7 +39,7 @@ func (h *BookHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *BookHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	bookID := chi.URLParam(r, "id")
 
-	resp, err := h.bookService.GetByID(r.Context(), bookID)
+	resp, err := h.srv.GetByID(r.Context(), bookID)
 	if err != nil {
 		if errors.Is(err, service.ErrBookNotFound) {
 			writeError(w, r, http.StatusNotFound, "book not found")
@@ -72,7 +72,7 @@ func (h *BookHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.bookService.Create(r.Context(), userID, req)
+	resp, err := h.srv.Create(r.Context(), userID, req)
 	if err != nil {
 		writeError(w, r, http.StatusInternalServerError, err.Error())
 
@@ -94,7 +94,7 @@ func (h *BookHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	book, err := h.bookService.Update(r.Context(), userID, bookID, req)
+	book, err := h.srv.Update(r.Context(), userID, bookID, req)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrBookNotFound):
@@ -113,7 +113,7 @@ func (h *BookHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 	bookID := chi.URLParam(r, "id")
 
-	if err := h.bookService.Delete(r.Context(), userID, bookID); err != nil {
+	if err := h.srv.Delete(r.Context(), userID, bookID); err != nil {
 		switch {
 		case errors.Is(err, service.ErrBookNotFound):
 			writeError(w, r, http.StatusNotFound, "book not found")

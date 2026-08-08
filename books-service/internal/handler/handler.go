@@ -11,12 +11,12 @@ import (
 )
 
 type BookHandler struct {
-	bookService *service.BookService
+	srv *service.BookService
 }
 
 func NewBookHandler(bookService *service.BookService) *BookHandler {
 	return &BookHandler{
-		bookService: bookService,
+		srv: bookService,
 	}
 }
 
