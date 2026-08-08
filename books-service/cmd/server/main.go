@@ -29,8 +29,8 @@ func main() {
 	defer db.Close()
 
 	repos := repository.New(db)
-	services := service.New(repos, cfg.JWTSecret)
-	handlers := handler.New(services, cfg.JWTSecret)
+	services := service.New(repos, cfg.AuthServiceURL)
+	handlers := handler.New(services, cfg.AuthServiceURL)
 
 	r := chi.NewRouter()
 
