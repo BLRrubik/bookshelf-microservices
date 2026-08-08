@@ -26,7 +26,7 @@ func normalizeConfig(cfg *Config) {
 	}
 
 	if cfg.DatabaseURL == "" {
-		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5432/books?sslmode=disable"
+		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5433/books?sslmode=disable"
 	}
 
 	if cfg.AuthServiceURL == "" {

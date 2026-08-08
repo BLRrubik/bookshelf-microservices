@@ -102,7 +102,7 @@ func (s *UserService) createAuthResponse(user *domain.User) (*domain.AuthRespons
 	return &domain.AuthResponse{
 		AccessToken: token,
 		TokenType:   "Bearer",
-		ExpiresIn:   int(time.Now().Add(time.Hour).Unix()),
+		ExpiresIn:   int(time.Until(time.Now().Add(time.Hour)).Seconds()),
 		User:        user.ToPublic(),
 	}, nil
 }

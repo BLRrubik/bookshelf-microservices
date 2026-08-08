@@ -20,24 +20,6 @@ func NewBookHandler(bookService *service.BookService) *BookHandler {
 	}
 }
 
-func (h *BookHandler) RegisterRoutes(r chi.Router) {
-
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/books", h.List)
-		r.Get("/books/{id}", h.GetByID)
-
-		// Защищённые роуты — с AuthMiddleware
-		r.Group(func(r chi.Router) {
-			//r.Use(handlers.AuthMiddleware)
-
-			r.Post("/books", h.Create)
-			r.Put("/books/{id}", h.Update)
-			r.Delete("/books/{id}", h.Delete)
-
-		})
-	})
-}
-
 func (h *BookHandler) List(w http.ResponseWriter, r *http.Request) {
 	filter := extractFilter(r)
 
@@ -80,7 +62,7 @@ func (h *BookHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	writeJSON(w, http.StatusOK, resp.ToResponse())
 }
 
 func (h *BookHandler) Create(w http.ResponseWriter, r *http.Request) {
@@ -107,7 +89,7 @@ func (h *BookHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, resp)
+	writeJSON(w, http.StatusCreated, resp.ToResponse())
 }
 
 func (h *BookHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -134,7 +116,7 @@ func (h *BookHandler) Update(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	writeJSON(w, http.StatusOK, book)
+	writeJSON(w, http.StatusOK, book.ToResponse())
 }
 
 func (h *BookHandler) Delete(w http.ResponseWriter, r *http.Request) {

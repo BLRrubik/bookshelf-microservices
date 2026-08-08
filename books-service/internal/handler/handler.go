@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bookshelf/books-service/internal/client"
 	"bookshelf/books-service/internal/domain"
 	"bookshelf/books-service/internal/service"
 	"encoding/json"
@@ -15,20 +16,41 @@ import (
 type Handler struct {
 	bookHandler   *BookHandler
 	reviewHandler *ReviewHandler
+	authClient    *client.AuthClient
 }
 
-func NewHandler(service *service.Service) *Handler {
+func NewHandler(service *service.Service, authClient *client.AuthClient) *Handler {
 	return &Handler{
 		bookHandler:   NewBookHandler(service.BookService),
 		reviewHandler: NewReviewHandler(service.ReviewService),
+		authClient:    authClient,
 	}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/health", h.Health)
+	r.Get("/ready", h.Health)
 
-	h.bookHandler.RegisterRoutes(r)
-	h.reviewHandler.RegisterRoutes(r)
+	r.Route("/api/v1", func(r chi.Router) {
+		r.Get("/books/{book_id}/reviews", h.reviewHandler.List)
+		r.Get("/reviews/{id} ", h.reviewHandler.GetReview)
+
+		r.Get("/books", h.bookHandler.List)
+		r.Get("/books/{id}", h.bookHandler.GetByID)
+
+		r.Group(func(r chi.Router) {
+			r.Use(AuthMiddleware(h.authClient))
+
+			r.Post("/books/{book_id}/reviews", h.reviewHandler.Create)
+			r.Put("/reviews/{id} ", h.reviewHandler.Update)
+			r.Delete("/reviews/{id} ", h.reviewHandler.Delete)
+
+			r.Post("/books", h.bookHandler.Create)
+			r.Put("/books/{id}", h.bookHandler.Update)
+			r.Delete("/books/{id}", h.bookHandler.Delete)
+		})
+
+	})
 }
 
 func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bookshelf/books-service/internal/client"
 	"bookshelf/books-service/internal/config"
 	"bookshelf/books-service/internal/handler"
 	"bookshelf/books-service/internal/repository"
@@ -17,6 +18,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -28,9 +30,11 @@ func main() {
 	}
 	defer db.Close()
 
+	authClient := client.NewAuthClient("http://localhost:8081", time.Second*5)
+
 	repos := repository.New(db)
 	services := service.New(repos, cfg.AuthServiceURL)
-	handlers := handler.NewHandler(services)
+	handlers := handler.NewHandler(services, authClient)
 
 	r := chi.NewRouter()
 
@@ -38,7 +42,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5173"},
+		AllowedOrigins:   []string{"http://localhost:5174", "http://localhost:3002"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		ExposedHeaders:   []string{"Link"},

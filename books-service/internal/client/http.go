@@ -5,10 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"syscall"
 	"time"
+)
+
+var (
+	ErrInternalError = errors.New("internal server error")
+	ErrRequestError  = errors.New("request error")
 )
 
 type HTTPClient struct {
@@ -52,10 +56,6 @@ func (c *HTTPClient) Get(ctx context.Context, path string, headers map[string]st
 		return nil, err
 	}
 
-	if !successRequest(resp.StatusCode) {
-		return nil, fmt.Errorf("request failed with status code %d", resp.StatusCode)
-	}
-
 	return resp, nil
 }
 
@@ -87,13 +87,5 @@ func (c *HTTPClient) Post(ctx context.Context, path string, body interface{}, he
 		return nil, err
 	}
 
-	if !successRequest(resp.StatusCode) {
-		return nil, fmt.Errorf("request failed with status code %d", resp.StatusCode)
-	}
-
 	return resp, nil
-}
-
-func successRequest(statusCode int) bool {
-	return statusCode >= 200 && statusCode < 300
 }

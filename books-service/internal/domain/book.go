@@ -56,7 +56,6 @@ type BookResponse struct {
 type CreateBookRequest struct {
 	Title         string  `json:"title"`
 	Author        string  `json:"author"`
-	UserID        string  `json:"user_id"`
 	Description   *string `json:"description,omitempty"`
 	ISBN          *string `json:"isbn,omitempty"`
 	PublishedYear *int32  `json:"published_year,omitempty"`

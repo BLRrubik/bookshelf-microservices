@@ -15,23 +15,9 @@ type ReviewHandler struct {
 }
 
 func NewReviewHandler(svc *service.ReviewService) *ReviewHandler {
-	return &ReviewHandler{svc: svc}
-}
-
-func (h *ReviewHandler) RegisterRoutes(r chi.Router) {
-	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/books/{book_id}/reviews", h.List)
-		r.Get("/reviews/{id} ", h.GetReview)
-
-		r.Group(func(r chi.Router) {
-			//r.Use(handlers.AuthMiddleware)
-			r.Post("/books/{book_id}/reviews", h.Create)
-			r.Put("/reviews/{id} ", h.Update)
-			r.Delete("/reviews/{id} ", h.Delete)
-
-		})
-
-	})
+	return &ReviewHandler{
+		svc: svc,
+	}
 }
 
 func (h *ReviewHandler) List(w http.ResponseWriter, r *http.Request) {
