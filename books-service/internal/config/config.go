@@ -3,16 +3,16 @@ package config
 import "os"
 
 type Config struct {
-	Port        string
-	DatabaseURL string
-	JWTSecret   string
+	Port           string
+	DatabaseURL    string
+	AuthServiceURL string
 }
 
 func Load() *Config {
 	cfg := &Config{
-		Port:        os.Getenv("PORT"),
-		DatabaseURL: os.Getenv("DATABASE_URL"),
-		JWTSecret:   os.Getenv("JWT_SECRET"),
+		Port:           os.Getenv("PORT"),
+		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		AuthServiceURL: os.Getenv("AUTH_SERVICE_URL"),
 	}
 
 	normalizeConfig(cfg)
@@ -29,7 +29,7 @@ func normalizeConfig(cfg *Config) {
 		cfg.DatabaseURL = "postgres://postgres:postgres@localhost:5432/books?sslmode=disable"
 	}
 
-	if cfg.JWTSecret == "" {
-		cfg.JWTSecret = "secret"
+	if cfg.AuthServiceURL == "" {
+		cfg.AuthServiceURL = "http://localhost:8081"
 	}
 }

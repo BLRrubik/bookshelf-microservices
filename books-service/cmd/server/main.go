@@ -1,10 +1,10 @@
 package main
 
 import (
-	"bookshelf/book-service/internal/config"
-	"bookshelf/book-service/internal/handler"
-	"bookshelf/book-service/internal/repository"
-	"bookshelf/book-service/internal/service"
+	"bookshelf/books-service/internal/config"
+	"bookshelf/books-service/internal/handler"
+	"bookshelf/books-service/internal/repository"
+	"bookshelf/books-service/internal/service"
 	"context"
 	"log"
 	"net/http"

@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"bookshelf/book-service/internal/domain"
-	"bookshelf/book-service/internal/service"
+	"bookshelf/books-service/internal/domain"
+	"bookshelf/books-service/internal/service"
 	"encoding/json"
 	"errors"
 	"net/http"

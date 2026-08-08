@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"bookshelf/book-service/internal/domain"
+	"bookshelf/books-service/internal/domain"
 	"context"
 	"database/sql"
 	"errors"

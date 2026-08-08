@@ -1,9 +1,9 @@
 package service
 
 import (
-	"bookshelf/book-service/internal/domain"
-	"bookshelf/book-service/internal/repository"
-	"bookshelf/book-service/internal/utils"
+	"bookshelf/books-service/internal/domain"
+	"bookshelf/books-service/internal/repository"
+	"bookshelf/books-service/internal/utils"
 	"context"
 	"errors"
 )

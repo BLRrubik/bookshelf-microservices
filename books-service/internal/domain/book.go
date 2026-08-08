@@ -1,7 +1,7 @@
 package domain
 
 import (
-	"bookshelf/book-service/internal/utils"
+	"bookshelf/books-service/internal/utils"
 	"database/sql"
 	"errors"
 	"time"
@@ -11,7 +11,7 @@ type Book struct {
 	ID            string          `json:"id" db:"id"`
 	Title         string          `json:"title" db:"title"`
 	Author        string          `json:"author" db:"author"`
-	CreatedBy     string          `json:"created_by" db:"created_by"`
+	UserID        string          `json:"created_by" db:"created_by"`
 	CreatedAt     time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt     time.Time       `json:"updated_at" db:"updated_at"`
 	Description   sql.NullString  `json:"description" db:"description"`
@@ -26,7 +26,7 @@ func (b *Book) ToResponse() BookResponse {
 		ID:            b.ID,
 		Title:         b.Title,
 		Author:        b.Author,
-		CreatedBy:     b.CreatedBy,
+		CreatedBy:     b.UserID,
 		CreatedAt:     b.CreatedAt,
 		UpdatedAt:     b.UpdatedAt,
 		Description:   utils.NullToString(b.Description),

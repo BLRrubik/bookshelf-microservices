@@ -1,7 +1,7 @@
 package repository
 
 import (
-	"bookshelf/book-service/internal/domain"
+	"bookshelf/books-service/internal/domain"
 	"context"
 	"database/sql"
 	"errors"
@@ -77,7 +77,7 @@ func (br *BookRepository) Create(ctx context.Context, book *domain.Book) error {
 		book.Description,
 		book.ISBN,
 		book.PublishedYear,
-		book.CreatedBy,
+		book.UserID,
 	)
 	if err != nil {
 		return err

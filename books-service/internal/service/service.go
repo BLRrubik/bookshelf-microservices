@@ -1,7 +1,7 @@
 package service
 
 import (
-	"bookshelf/book-service/internal/repository"
+	"bookshelf/books-service/internal/repository"
 )
 
 type Service struct {

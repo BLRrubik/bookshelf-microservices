@@ -1,4 +1,4 @@
-module bookshelf/book-service
+module bookshelf/books-service
 
 go 1.26
 
