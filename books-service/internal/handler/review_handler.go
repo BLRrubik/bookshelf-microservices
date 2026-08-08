@@ -20,12 +20,12 @@ func NewReviewHandler(svc *service.ReviewService) *ReviewHandler {
 
 func (h *ReviewHandler) RegisterRoutes(r chi.Router) {
 	r.Route("/api/v1", func(r chi.Router) {
-		r.Get("/books/{bookId}/reviews", h.List)
+		r.Get("/books/{book_id}/reviews", h.List)
 		r.Get("/reviews/{id} ", h.GetReview)
 
 		r.Group(func(r chi.Router) {
 			//r.Use(handlers.AuthMiddleware)
-			r.Post("/books/{bookId}/reviews", h.Create)
+			r.Post("/books/{book_id}/reviews", h.Create)
 			r.Put("/reviews/{id} ", h.Update)
 			r.Delete("/reviews/{id} ", h.Delete)
 
@@ -35,7 +35,7 @@ func (h *ReviewHandler) RegisterRoutes(r chi.Router) {
 }
 
 func (h *ReviewHandler) List(w http.ResponseWriter, r *http.Request) {
-	bookID := chi.URLParam(r, "bookId")
+	bookID := chi.URLParam(r, "book_id")
 
 	reviews, err := h.svc.ListByBook(r.Context(), bookID)
 	if err != nil {
@@ -79,7 +79,7 @@ func (h *ReviewHandler) GetReview(w http.ResponseWriter, r *http.Request) {
 
 func (h *ReviewHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
-	bookID := chi.URLParam(r, "bookId")
+	bookID := chi.URLParam(r, "book_id")
 
 	var req domain.CreateReviewRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
