@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 )
 
@@ -54,12 +53,14 @@ func writeError(w http.ResponseWriter, r *http.Request, status int, message stri
 	w.WriteHeader(status)
 
 	resp := domain.ErrorResponse{
-		Code:    status,
-		Message: message,
+		Error: domain.ErrorData{
+			Code:    status,
+			Message: message,
+		},
 	}
 
 	if reqID, ok := r.Context().Value(requestIDKey).(string); ok {
-		resp.RequestID = reqID
+		resp.Error.RequestID = reqID
 	}
 
 	bytes, err := json.Marshal(resp)
@@ -77,10 +78,12 @@ func writeValidationError(w http.ResponseWriter, r *http.Request, details []doma
 	w.WriteHeader(http.StatusBadRequest)
 
 	resp := domain.ErrorResponse{
-		Code:      http.StatusBadRequest,
-		Message:   "validation error",
-		RequestID: r.Context().Value(requestIDKey).(string),
-		Details:   details,
+		Error: domain.ErrorData{
+			Code:      http.StatusBadRequest,
+			Message:   "validation error",
+			RequestID: r.Context().Value(requestIDKey).(string),
+			Details:   details,
+		},
 	}
 
 	bytes, err := json.Marshal(resp)
@@ -91,20 +94,4 @@ func writeValidationError(w http.ResponseWriter, r *http.Request, details []doma
 	}
 
 	_, _ = w.Write(bytes)
-}
-
-func extractPageAndLimit(r *http.Request) (int, int) {
-	pageStr := r.URL.Query().Get("page")
-	page, err := strconv.Atoi(pageStr)
-	if err != nil {
-		page = 1
-	}
-
-	limitStr := r.URL.Query().Get("limit")
-	limit, err := strconv.Atoi(limitStr)
-	if err != nil {
-		limit = 10
-	}
-
-	return page, limit
 }

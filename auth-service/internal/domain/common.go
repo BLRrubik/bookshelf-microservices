@@ -1,6 +1,10 @@
 package domain
 
 type ErrorResponse struct {
+	Error ErrorData `json:"error"`
+}
+
+type ErrorData struct {
 	Code      int           `json:"code"`
 	Message   string        `json:"message"`
 	Details   []ErrorDetail `json:"details"`
