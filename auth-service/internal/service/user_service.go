@@ -107,7 +107,7 @@ func (s *UserService) createAuthResponse(user *domain.User) (*domain.AuthRespons
 	}, nil
 }
 
-func (s *UserService) ValidateToken(tokenString string) (string, error) {
+func (s *UserService) ValidateToken(tokenString string) *domain.VerifyResponse {
 	claims := &jwt.RegisteredClaims{}
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
@@ -117,14 +117,22 @@ func (s *UserService) ValidateToken(tokenString string) (string, error) {
 		return []byte(s.jwtSecret), nil
 	})
 	if err != nil {
-		return "", err
+		return &domain.VerifyResponse{
+			Error: err.Error(),
+		}
 	}
 
 	if !token.Valid {
-		return "", fmt.Errorf("invalid token")
+		return &domain.VerifyResponse{
+			Error: "invalid token",
+		}
 	}
 
-	return claims.Subject, nil
+	return &domain.VerifyResponse{
+		Valid:     token.Valid,
+		ExpiresAt: claims.ExpiresAt.Unix(),
+		UserID:    claims.Subject,
+	}
 }
 
 func (s *UserService) Login(ctx context.Context, req domain.LoginRequest) (*domain.AuthResponse, error) {

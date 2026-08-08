@@ -93,3 +93,14 @@ type AuthResponse struct {
 type UpdateUserRequest struct {
 	Username string `json:"username"`
 }
+
+type VerifyRequest struct {
+	Token string `json:"token"`
+}
+
+type VerifyResponse struct {
+	Valid     bool   `json:"valid"`
+	UserID    string `json:"user_id"`
+	ExpiresAt int64  `json:"expires_at"`
+	Error     string `json:"error,omitempty"`
+}

@@ -7,21 +7,30 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
-type AuthHandler struct {
-	userService *service.UserService
-	jwtSecret   string
+type Handler struct {
+	AuthHandler     *AuthHandler
+	InternalHandler *InternalHandler
 }
 
-func New(userService *service.UserService, jwtSecret string) *AuthHandler {
-	return &AuthHandler{
-		userService: userService,
-		jwtSecret:   jwtSecret,
+func NewHandler(userService *service.UserService, jwtSecret string) *Handler {
+	return &Handler{
+		AuthHandler:     NewAuthHandler(userService, jwtSecret),
+		InternalHandler: NewInternalHandler(userService),
 	}
 }
 
-func (h *AuthHandler) Health(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) RegisterRoutes(r chi.Router) {
+	r.Get("/health", h.Health)
+
+	h.AuthHandler.RegisterRoutes(r)
+	h.InternalHandler.RegisterRoutes(r)
+}
+
+func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(fmt.Sprintf(`{"status":"ok", "service":"auth-service", "timestamp":%d}`, time.Now().Unix())))

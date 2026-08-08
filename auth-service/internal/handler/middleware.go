@@ -22,14 +22,14 @@ func (h *AuthHandler) AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		userID, err := h.userService.ValidateToken(splitToken[1])
-		if err != nil {
+		res := h.userService.ValidateToken(splitToken[1])
+		if res.Error != "" {
 			writeError(w, r, http.StatusUnauthorized, "Invalid or expired token")
 
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		ctx := context.WithValue(r.Context(), userIDKey, res.UserID)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

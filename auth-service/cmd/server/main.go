@@ -31,7 +31,7 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepo, cfg.JWTSecret)
-	handlers := handler.New(userService, cfg.JWTSecret)
+	handlers := handler.NewHandler(userService, cfg.JWTSecret)
 
 	r := chi.NewRouter()
 
@@ -47,7 +47,7 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	registerRoutes(r, handlers)
+	handlers.RegisterRoutes(r)
 
 	server := &http.Server{
 		ReadTimeout:  5 * time.Second,
@@ -74,22 +74,4 @@ func main() {
 	if err = server.Shutdown(ctx); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func registerRoutes(r *chi.Mux, handlers *handler.AuthHandler) {
-	r.Get("/health", handlers.Health)
-
-	r.Route("/api/v1", func(r chi.Router) {
-		// Публичные роуты — без авторизации
-		r.Post("/auth/register", handlers.Register)
-		r.Post("/auth/login", handlers.Login)
-
-		// Защищённые роуты — с AuthMiddleware
-		r.Group(func(r chi.Router) {
-			r.Use(handlers.AuthMiddleware)
-
-			r.Get("/users/me", handlers.GetMe)
-			r.Put("/users/me", handlers.UpdateMe)
-		})
-	})
 }
