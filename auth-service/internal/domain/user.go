@@ -109,3 +109,7 @@ type VerifyResponse struct {
 	ExpiresAt string `json:"expires_at"`
 	Error     string `json:"error,omitempty"`
 }
+
+type GetUsersRequest struct {
+	IDs []string `json:"ids"`
+}

@@ -23,6 +23,7 @@ func NewInternalHandler(svc *service.UserService) *InternalHandler {
 func (h *InternalHandler) RegisterRoutes(r chi.Router) {
 	r.Route("/internal/v1", func(r chi.Router) {
 		r.Post("/auth/verify", h.VerifyToken)
+		r.Post("/users/batch", h.GetUsersByIDs)
 	})
 }
 
@@ -47,4 +48,23 @@ func (h *InternalHandler) VerifyToken(w http.ResponseWriter, r *http.Request) {
 		Valid:     true,
 		ExpiresAt: res.ExpiresAt.Format(time.RFC3339),
 	})
+}
+
+func (h *InternalHandler) GetUsersByIDs(w http.ResponseWriter, r *http.Request) {
+	var req domain.GetUsersRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, r, http.StatusBadRequest, "invalid request body")
+
+		return
+	}
+	defer r.Body.Close()
+
+	users, err := h.userService.GetUsersByIDs(r.Context(), req.IDs)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, err.Error())
+
+		return
+	}
+
+	writeJSON(w, http.StatusOK, users)
 }

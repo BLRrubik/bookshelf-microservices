@@ -43,6 +43,11 @@ SELECT EXISTS(SELECT id FROM users WHERE username = $1);
 	existsUserByEmailQuery = `
 SELECT EXISTS(SELECT id FROM users WHERE email = $1);
 `
+	getUsersByIDsQuery = `
+SELECT id, username, email, password_hash, created_at, updated_at
+FROM users
+WHERE id IN ($1);
+`
 )
 
 var (
@@ -60,10 +65,10 @@ func NewUserRepository(db *sqlx.DB) *UserRepository {
 	}
 }
 
-func (ur *UserRepository) Create(ctx context.Context, user *domain.User) error {
+func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	user.ID = uuid.NewString()
 
-	_, err := ur.db.ExecContext(ctx, createUserQuery, user.ID, user.Username, user.Email, user.PasswordHash)
+	_, err := r.db.ExecContext(ctx, createUserQuery, user.ID, user.Username, user.Email, user.PasswordHash)
 	if err != nil {
 		return err
 	}
@@ -71,9 +76,9 @@ func (ur *UserRepository) Create(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (ur *UserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
+func (r *UserRepository) GetByID(ctx context.Context, id string) (*domain.User, error) {
 	var user domain.User
-	err := ur.db.GetContext(ctx, &user, getUserByIDQuery, id)
+	err := r.db.GetContext(ctx, &user, getUserByIDQuery, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -85,9 +90,9 @@ func (ur *UserRepository) GetByID(ctx context.Context, id string) (*domain.User,
 	return &user, nil
 }
 
-func (ur *UserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
+func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*domain.User, error) {
 	var user domain.User
-	err := ur.db.GetContext(ctx, &user, getUserByUsernameQuery, username)
+	err := r.db.GetContext(ctx, &user, getUserByUsernameQuery, username)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -99,9 +104,9 @@ func (ur *UserRepository) GetByUsername(ctx context.Context, username string) (*
 	return &user, nil
 }
 
-func (ur *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user domain.User
-	err := ur.db.GetContext(ctx, &user, getUserByEmailQuery, email)
+	err := r.db.GetContext(ctx, &user, getUserByEmailQuery, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -113,8 +118,8 @@ func (ur *UserRepository) GetByEmail(ctx context.Context, email string) (*domain
 	return &user, nil
 }
 
-func (ur *UserRepository) Update(ctx context.Context, user *domain.User) error {
-	_, err := ur.db.ExecContext(ctx, updateUserQuery, user.ID, user.Username, user.Email, user.PasswordHash)
+func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
+	_, err := r.db.ExecContext(ctx, updateUserQuery, user.ID, user.Username, user.Email, user.PasswordHash)
 	if err != nil {
 		return err
 	}
@@ -122,9 +127,9 @@ func (ur *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	return nil
 }
 
-func (ur *UserRepository) UsernameExists(ctx context.Context, username string) bool {
+func (r *UserRepository) UsernameExists(ctx context.Context, username string) bool {
 	var exists bool
-	err := ur.db.GetContext(ctx, &exists, existsUserByUsernameQuery, username)
+	err := r.db.GetContext(ctx, &exists, existsUserByUsernameQuery, username)
 	if err != nil {
 		return false
 	}
@@ -132,12 +137,22 @@ func (ur *UserRepository) UsernameExists(ctx context.Context, username string) b
 	return exists
 }
 
-func (ur *UserRepository) EmailExists(ctx context.Context, email string) bool {
+func (r *UserRepository) EmailExists(ctx context.Context, email string) bool {
 	var exists bool
-	err := ur.db.GetContext(ctx, &exists, existsUserByEmailQuery, email)
+	err := r.db.GetContext(ctx, &exists, existsUserByEmailQuery, email)
 	if err != nil {
 		return false
 	}
 
 	return exists
+}
+
+func (r *UserRepository) GetByIDs(ctx context.Context, ids []string) ([]domain.User, error) {
+	var users []domain.User
+
+	if err := r.db.SelectContext(ctx, &users, getUsersByIDsQuery, ids); err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
