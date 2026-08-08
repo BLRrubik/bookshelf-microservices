@@ -25,7 +25,7 @@ func NewBookService(bookRepo *repository.BookRepository) *BookService {
 	}
 }
 
-func (s *BookService) Create(ctx context.Context, userID string, req domain.CreateBookRequest) (*domain.BookResponse, error) {
+func (s *BookService) Create(ctx context.Context, userID string, req domain.CreateBookRequest) (*domain.Book, error) {
 	//creator, err := s.userRepo.GetByID(ctx, userID)
 	//if err != nil {
 	//	if errors.Is(err, ErrUserNotFound) {
@@ -47,44 +47,28 @@ func (s *BookService) Create(ctx context.Context, userID string, req domain.Crea
 		return nil, err
 	}
 
-	bookResponse := book.ToResponse()
-
-	return &bookResponse, nil
+	return &book, nil
 }
 
-func (s *BookService) GetByID(ctx context.Context, id string) (*domain.BookResponse, error) {
-	book, err := s.bookRepo.GetByID(ctx, id)
-	if err != nil {
-		return nil, ErrBookNotFound
-	}
-
-	bookResponse := book.ToResponse()
-
-	return &bookResponse, nil
+func (s *BookService) GetByID(ctx context.Context, id string) (*domain.Book, error) {
+	return s.bookRepo.GetByID(ctx, id)
 }
 
-func (s *BookService) List(ctx context.Context, filter domain.ListParams) (*domain.BookListResponse, error) {
-	filter.Normalize()
+func (s *BookService) List(ctx context.Context, params domain.ListParams) ([]domain.Book, int, error) {
+	params.Normalize()
 
-	books, count, err := s.bookRepo.List(ctx, filter)
+	return s.bookRepo.List(ctx, params)
+}
+
+func (s *BookService) ListByUser(ctx context.Context, userID string, params domain.ListParams) ([]domain.Book, int, error) {
+	params.Normalize()
+
+	books, count, err := s.bookRepo.ListByUserID(ctx, userID, params)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
-	respBooks := make([]domain.BookResponse, len(books))
-	for i, book := range books {
-		respBooks[i] = book.ToResponse()
-	}
-
-	return &domain.BookListResponse{
-		Data: respBooks,
-		Pagination: domain.Pagination{
-			Limit:      filter.Limit,
-			Page:       filter.Page,
-			Total:      count,
-			TotalPages: count / filter.Limit,
-		},
-	}, nil
+	return books, count, nil
 }
 
 func (s *BookService) Update(
@@ -92,7 +76,7 @@ func (s *BookService) Update(
 	userID string,
 	bookID string,
 	req domain.UpdateBookRequest,
-) (*domain.BookResponse, error) {
+) (*domain.Book, error) {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
 		return nil, ErrBookNotFound
@@ -131,9 +115,7 @@ func (s *BookService) Update(
 	//	return nil, ErrBookNotFound
 	//}
 
-	bookResponse := book.ToResponse()
-
-	return &bookResponse, nil
+	return book, nil
 }
 
 func (s *BookService) Delete(ctx context.Context, userID string, bookID string) error {

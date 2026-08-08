@@ -71,7 +71,7 @@ func (s *ReviewService) Create(
 	return &reviewResponse, nil
 }
 
-func (s *ReviewService) GetByID(ctx context.Context, id string) (*domain.ReviewResponse, error) {
+func (s *ReviewService) GetByID(ctx context.Context, id string) (*domain.Review, error) {
 	review, err := s.reviewRepo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrReviewNotFound) {
@@ -81,12 +81,10 @@ func (s *ReviewService) GetByID(ctx context.Context, id string) (*domain.ReviewR
 		return nil, err
 	}
 
-	reviewResponse := review.ToResponse()
-
-	return &reviewResponse, nil
+	return review, nil
 }
 
-func (s *ReviewService) ListByBookID(ctx context.Context, bookID string, page, limit int) (*domain.ReviewListResponse, error) {
+func (s *ReviewService) ListByBook(ctx context.Context, bookID string) ([]domain.Review, error) {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
 		if errors.Is(err, repository.ErrBookNotFound) {
@@ -96,24 +94,12 @@ func (s *ReviewService) ListByBookID(ctx context.Context, bookID string, page, l
 		return nil, err
 	}
 
-	reviews, count, err := s.reviewRepo.ListByBookID(ctx, book.ID, page, limit)
+	reviews, err := s.reviewRepo.ListByBookID(ctx, book.ID)
 	if err != nil {
 		return nil, err
 	}
 
-	reviewResponses := make([]domain.ReviewResponse, len(reviews))
-	for i, review := range reviews {
-		reviewResponses[i] = review.ToResponse()
-	}
-
-	return &domain.ReviewListResponse{
-		Data: reviewResponses,
-		Pagination: domain.Pagination{
-			Page:  page,
-			Limit: limit,
-			Total: count,
-		},
-	}, nil
+	return reviews, nil
 }
 
 func (s *ReviewService) Update(
@@ -121,7 +107,7 @@ func (s *ReviewService) Update(
 	userID string,
 	reviewID string,
 	req domain.UpdateReviewRequest,
-) (*domain.ReviewResponse, error) {
+) (*domain.Review, error) {
 	review, err := s.reviewRepo.GetByID(ctx, reviewID)
 	if err != nil {
 		if errors.Is(err, repository.ErrReviewNotFound) {
@@ -155,9 +141,7 @@ func (s *ReviewService) Update(
 		return nil, err
 	}
 
-	reviewResponse := review.ToResponse()
-
-	return &reviewResponse, nil
+	return review, nil
 }
 
 func (s *ReviewService) validateUpdate(req domain.UpdateReviewRequest) error {
