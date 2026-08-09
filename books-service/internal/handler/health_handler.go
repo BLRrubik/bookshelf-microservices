@@ -57,6 +57,9 @@ func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HealthHandler) checkDatabase(ctx context.Context) Check {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+	defer cancel()
+
 	now := time.Now()
 	err := h.db.PingContext(ctx)
 	after := time.Since(now)
