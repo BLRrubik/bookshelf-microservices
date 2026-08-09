@@ -56,6 +56,9 @@ func NewHTTPClient(baseURL string, cfg HTTPClientConfig) *HTTPClient {
 }
 
 func (c *HTTPClient) Get(ctx context.Context, path string, headers map[string]string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
 	req, err := http.NewRequestWithContext(ctx, "GET", c.baseURL+path, nil)
 	if err != nil {
 		return nil, err
@@ -69,6 +72,9 @@ func (c *HTTPClient) Get(ctx context.Context, path string, headers map[string]st
 }
 
 func (c *HTTPClient) Post(ctx context.Context, path string, body interface{}, headers map[string]string) (*http.Response, error) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second*30)
+	defer cancel()
+
 	bodyBytes, err := json.Marshal(body)
 	if err != nil {
 		return nil, err
