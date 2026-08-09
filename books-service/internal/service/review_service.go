@@ -93,22 +93,17 @@ func (s *ReviewService) GetByID(ctx context.Context, id string) (*domain.Review,
 	return review, nil
 }
 
-func (s *ReviewService) ListByBook(ctx context.Context, bookID string) ([]domain.Review, error) {
+func (s *ReviewService) ListByBook(ctx context.Context, bookID string, page, limit int) ([]domain.Review, int, error) {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
 		if errors.Is(err, repository.ErrBookNotFound) {
-			return nil, ErrBookNotFound
+			return nil, 0, ErrBookNotFound
 		}
 
-		return nil, err
+		return nil, 0, err
 	}
 
-	reviews, err := s.reviewRepo.ListByBookID(ctx, book.ID)
-	if err != nil {
-		return nil, err
-	}
-
-	return reviews, nil
+	return s.reviewRepo.ListByBookID(ctx, book.ID, page, limit)
 }
 
 func (s *ReviewService) Update(
