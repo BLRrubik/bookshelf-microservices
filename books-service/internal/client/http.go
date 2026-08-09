@@ -105,7 +105,7 @@ func (c *HTTPClient) do(req *http.Request) (*http.Response, error) {
 			return nil, err
 		}
 
-		if resp.StatusCode == http.StatusOK || resp.StatusCode < http.StatusInternalServerError {
+		if err == nil && (resp.StatusCode == http.StatusOK || resp.StatusCode < http.StatusInternalServerError) {
 			return resp, nil
 		}
 
