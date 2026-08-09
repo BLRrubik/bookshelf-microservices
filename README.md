@@ -1,41 +1,3 @@
-# Bookshelf — Microservices
-
-## Почему микросервисы?
-
-Монолит стал узким местом
-
-## Архитектура
-
-- **auth-service** (порт 8081) — регистрация, авторизация, управление пользователями
-Файлы auth-service определены: 
-- domain/user.go
-- handler/auth_handler.go
-- service/user_service.go
-- repository/user_repository.go
-
-- **books-service** (порт 8082) — каталог книг, рецензии 
-Файлы books-service определены: 
-- domain/book.go
-- domain/review.go
-- handler/book_handler.go
-- handler/review_handler.go
-- service/book_service.go
-- service/review_service.go
-- repository/book_repository.go
-- repository/review_repository.go
-
-Каждый сервис имеет свою базу данных (Database per Service).
-
-## Компоненты системы
-
-| Компонент      | Назначение                    |
-|----------------|-------------------------------|
-| auth-service   | Аутентификация и пользователи |
-| books-service  | Книги и рецензии              |
-| auth-postgres  | БД для auth-service           |
-| books-postgres | БД для books-service          |
-| frontend       | React-приложение              |
-
 # Project 2: Микросервисы — Инфраструктура
 
 ## О проекте
@@ -60,17 +22,20 @@ Frontend (:5174) ──►│  auth-service   │──► auth-postgres (:5432)
                     └─────────────────┘
 ```
 
-## Содержимое
+## Содержимое архива
+
+В этом архиве только Docker-конфигурация для запуска всей системы:
 
 ```
-├── frontend/               # React-приложение (готовое)
+├── docker-compose.yml      # БД (auth-postgres, books-postgres) + auth-service + books-service + frontend
 ├── auth-service/
-│   └── migrations/         # Миграции для auth БД
+│   └── Dockerfile          # Сборка auth-service (Go)
 ├── books-service/
-│   └── migrations/         # Миграции для books БД
-├── docker-compose.yml      # auth-postgres + books-postgres + Frontend
-└── README.md               # Этот файл
+│   └── Dockerfile          # Сборка books-service (Go)
+└── README.md
 ```
+
+Директории **frontend/** и **migrations/** (внутри auth-service и books-service), а также ваш Go-код сервисов должны уже быть в проекте — из шага с инфраструктурой и миграциями. Положите Dockerfile в соответствующие директории и замените корневой `docker-compose.yml` на файл из архива.
 
 ## Запуск
 
@@ -80,8 +45,10 @@ docker compose up -d --build
 
 После запуска:
 - **Frontend**: http://localhost:5174
-- **auth-postgres**: localhost:5432
-- **books-postgres**: localhost:5433
+- **auth-service**: http://localhost:8081
+- **books-service**: http://localhost:8082
+- **auth-postgres**: localhost:5432 (БД `auth`)
+- **books-postgres**: localhost:5433 (БД `books`)
 
 ## Как это работает
 
@@ -148,6 +115,12 @@ docker compose logs books-postgres  # Логи books БД
 ```bash
 docker compose build --no-cache frontend
 docker compose up -d frontend
+```
+
+### Пересборка Go-сервисов (после изменения кода)
+```bash
+docker compose build --no-cache auth-service books-service
+docker compose up -d auth-service books-service
 ```
 
 ## Инструкции по реализации
