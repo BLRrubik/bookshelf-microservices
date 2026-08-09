@@ -27,7 +27,6 @@ func AuthMiddleware(authClient *client.AuthClient) func(http.Handler) http.Handl
 
 			resp, err := authClient.VerifyToken(r.Context(), splitToken[1])
 			if err != nil {
-
 				switch {
 				case errors.Is(err, client.ErrRequestError):
 					writeError(w, r, http.StatusUnauthorized, "Invalid or expired token")

@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"net"
 	"net/http"
-	"syscall"
 	"time"
 )
 
@@ -16,20 +16,42 @@ var (
 )
 
 type HTTPClient struct {
-	client  *http.Client
-	baseURL string
+	client     *http.Client
+	baseURL    string
+	maxRetries int
+	retryDelay time.Duration
 }
 
-func NewHTTPClient(baseURL string, timeout time.Duration) *HTTPClient {
-	if timeout == 0 {
-		timeout = time.Second * 5
+type HTTPClientConfig struct {
+	MaxRetries int
+	RetryDelay time.Duration
+	Timeout    time.Duration
+}
+
+func (c *HTTPClientConfig) normalize() {
+	if c.Timeout == 0 {
+		c.Timeout = time.Second * 5
 	}
+
+	if c.MaxRetries == 0 {
+		c.MaxRetries = 3
+	}
+
+	if c.RetryDelay == 0 {
+		c.RetryDelay = 100 * time.Millisecond
+	}
+}
+
+func NewHTTPClient(baseURL string, cfg HTTPClientConfig) *HTTPClient {
+	cfg.normalize()
 
 	return &HTTPClient{
 		client: &http.Client{
-			Timeout: timeout,
+			Timeout: cfg.Timeout,
 		},
-		baseURL: baseURL,
+		baseURL:    baseURL,
+		maxRetries: cfg.MaxRetries,
+		retryDelay: cfg.RetryDelay,
 	}
 }
 
@@ -43,20 +65,7 @@ func (c *HTTPClient) Get(ctx context.Context, path string, headers map[string]st
 		req.Header.Set(k, v)
 	}
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, errors.New("request timeout")
-		}
-
-		if errors.Is(err, syscall.ECONNREFUSED) {
-			return nil, errors.New("connection refused")
-		}
-
-		return nil, err
-	}
-
-	return resp, nil
+	return c.do(req)
 }
 
 func (c *HTTPClient) Post(ctx context.Context, path string, body interface{}, headers map[string]string) (*http.Response, error) {
@@ -74,18 +83,38 @@ func (c *HTTPClient) Post(ctx context.Context, path string, body interface{}, he
 		req.Header.Set(k, v)
 	}
 
-	resp, err := c.client.Do(req)
-	if err != nil {
-		if errors.Is(err, context.DeadlineExceeded) {
-			return nil, errors.New("request timeout")
+	return c.do(req)
+}
+
+func (c *HTTPClient) do(req *http.Request) (*http.Response, error) {
+	var (
+		attempt int
+		resp    *http.Response
+		delay   = c.retryDelay
+		err     error
+	)
+	for attempt < c.maxRetries {
+		resp, err = c.client.Do(req)
+		if err != nil && !isTimeout(err) {
+			return nil, err
 		}
 
-		if errors.Is(err, syscall.ECONNREFUSED) {
-			return nil, errors.New("connection refused")
+		if resp.StatusCode == http.StatusOK || resp.StatusCode < http.StatusInternalServerError {
+			return resp, nil
 		}
 
-		return nil, err
+		attempt++
+		delay *= 2
 	}
 
-	return resp, nil
+	return resp, err
+}
+
+func isTimeout(err error) bool {
+	var netErr net.Error
+	if errors.As(err, &netErr) && (netErr.Timeout() || netErr.Temporary()) {
+		return true
+	}
+
+	return false
 }

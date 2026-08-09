@@ -34,9 +34,13 @@ type AuthClient struct {
 	serviceKey string
 }
 
-func NewAuthClient(baseURL string, timeout time.Duration, serviceKey string) *AuthClient {
+func NewAuthClient(baseURL string, timeout time.Duration, maxRetries int, retryDelay time.Duration, serviceKey string) *AuthClient {
 	return &AuthClient{
-		httpClient: NewHTTPClient(baseURL, timeout),
+		httpClient: NewHTTPClient(baseURL, HTTPClientConfig{
+			Timeout:    timeout,
+			MaxRetries: maxRetries,
+			RetryDelay: retryDelay,
+		}),
 		serviceKey: serviceKey,
 	}
 }
