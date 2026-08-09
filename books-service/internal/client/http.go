@@ -110,6 +110,8 @@ func (c *HTTPClient) do(req *http.Request) (*http.Response, error) {
 		}
 
 		attempt++
+		time.Sleep(delay)
+
 		delay *= 2
 	}
 
