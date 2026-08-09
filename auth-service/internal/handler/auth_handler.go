@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-
-	"github.com/go-chi/chi/v5"
 )
 
 type AuthHandler struct {
@@ -20,22 +18,6 @@ func NewAuthHandler(userService *service.UserService, jwtSecret string) *AuthHan
 		userService: userService,
 		jwtSecret:   jwtSecret,
 	}
-}
-
-func (h *AuthHandler) RegisterRoutes(r chi.Router) {
-	r.Route("/api/v1", func(r chi.Router) {
-		// Публичные роуты — без авторизации
-		r.Post("/auth/register", h.Register)
-		r.Post("/auth/login", h.Login)
-
-		// Защищённые роуты — с AuthMiddleware
-		r.Group(func(r chi.Router) {
-			r.Use(h.AuthMiddleware)
-
-			r.Get("/users/me", h.GetMe)
-			r.Put("/users/me", h.UpdateMe)
-		})
-	})
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {

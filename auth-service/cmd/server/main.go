@@ -31,7 +31,7 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db)
 	userService := service.NewUserService(userRepo, cfg.JWTSecret)
-	handlers := handler.NewHandler(userService, cfg.JWTSecret)
+	handlers := handler.NewHandler(userService, db, cfg.JWTSecret)
 
 	r := chi.NewRouter()
 

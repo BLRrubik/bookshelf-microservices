@@ -4,37 +4,53 @@ import (
 	"bookshelf/auth-service/internal/domain"
 	"bookshelf/auth-service/internal/service"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jmoiron/sqlx"
 )
 
 type Handler struct {
-	AuthHandler     *AuthHandler
-	InternalHandler *InternalHandler
+	authHandler     *AuthHandler
+	internalHandler *InternalHandler
+	healthHandler   *HealthHandler
 }
 
-func NewHandler(userService *service.UserService, jwtSecret string) *Handler {
+func NewHandler(userService *service.UserService, db *sqlx.DB, jwtSecret string) *Handler {
 	return &Handler{
-		AuthHandler:     NewAuthHandler(userService, jwtSecret),
-		InternalHandler: NewInternalHandler(userService),
+		authHandler:     NewAuthHandler(userService, jwtSecret),
+		internalHandler: NewInternalHandler(userService),
+		healthHandler:   NewHealthHandler(db),
 	}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router, serviceKey string) {
-	r.Get("/health", h.Health)
-	r.Get("/ready", h.Health)
+	r.Get("/ready", h.Ready)
+	r.Get("/health", h.healthHandler.Health)
 
-	h.AuthHandler.RegisterRoutes(r)
-	h.InternalHandler.RegisterRoutes(r, serviceKey)
+	r.Route("/api/v1", func(r chi.Router) {
+		// Публичные роуты — без авторизации
+		r.Post("/auth/register", h.authHandler.Register)
+		r.Post("/auth/login", h.authHandler.Login)
+
+		// Защищённые роуты — с AuthMiddleware
+		r.Group(func(r chi.Router) {
+			r.Use(h.authHandler.AuthMiddleware)
+
+			r.Get("/users/me", h.authHandler.GetMe)
+			r.Put("/users/me", h.authHandler.UpdateMe)
+		})
+	})
+
+	r.Route("/internal/v1", func(r chi.Router) {
+		r.Use(ServiceKeyMiddleware(serviceKey))
+		r.Post("/auth/verify", h.internalHandler.VerifyToken)
+		r.Post("/users/batch", h.internalHandler.GetUsersByIDs)
+	})
 }
 
-func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"status":"ok", "service":"auth-service", "timestamp":%d}`, time.Now().Unix())))
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

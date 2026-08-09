@@ -5,31 +5,32 @@ import (
 	"bookshelf/books-service/internal/domain"
 	"bookshelf/books-service/internal/service"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jmoiron/sqlx"
 )
 
 type Handler struct {
 	bookHandler   *BookHandler
 	reviewHandler *ReviewHandler
+	healthHandler *HealthHandler
 	authClient    *client.AuthClient
 }
 
-func NewHandler(service *service.Service, authClient *client.AuthClient) *Handler {
+func NewHandler(service *service.Service, db *sqlx.DB, authClient *client.AuthClient) *Handler {
 	return &Handler{
 		bookHandler:   NewBookHandler(service.BookService),
 		reviewHandler: NewReviewHandler(service.ReviewService),
+		healthHandler: NewHealthHandler(db),
 		authClient:    authClient,
 	}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	r.Get("/health", h.Health)
-	r.Get("/ready", h.Health)
+	r.Get("/health", h.healthHandler.Health)
+	r.Get("/ready", h.Ready)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/books/{book_id}/reviews", h.reviewHandler.List)
@@ -53,10 +54,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	})
 }
 
-func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
+func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf(`{"status":"ok", "service":"books-service", "timestamp":%d}`, time.Now().Unix())))
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
