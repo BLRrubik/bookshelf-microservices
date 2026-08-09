@@ -43,6 +43,7 @@ services:
     environment:
       PORT: "8081"
       DATABASE_URL: "postgres://postgres:postgres@auth-postgres:5432/auth?sslmode=disable"
+      SERVICE_KEY: "serviceKey"
     depends_on:
       auth-postgres:
         condition: service_healthy
@@ -62,6 +63,7 @@ services:
       PORT: "8082"
       DATABASE_URL: "postgres://postgres:postgres@books-postgres:5432/books?sslmode=disable"
       AUTH_SERVICE_URL: "http://auth-service:8081"
+      SERVICE_KEY: "serviceKey"
     depends_on:
       books-postgres:
         condition: service_healthy
