@@ -25,7 +25,7 @@ func NewHandler(userService *service.UserService, db *sqlx.DB, jwtSecret string)
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router, serviceKey string) {
-	r.Get("/ready", h.Ready)
+	r.Get("/ready", h.healthHandler.Ready)
 	r.Get("/health", h.healthHandler.Health)
 
 	r.Route("/api/v1", func(r chi.Router) {
@@ -47,10 +47,6 @@ func (h *Handler) RegisterRoutes(r chi.Router, serviceKey string) {
 		r.Post("/auth/verify", h.internalHandler.VerifyToken)
 		r.Post("/users/batch", h.internalHandler.GetUsersByIDs)
 	})
-}
-
-func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

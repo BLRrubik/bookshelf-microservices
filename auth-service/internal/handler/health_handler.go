@@ -16,6 +16,13 @@ type HealthResponse struct {
 	Timestamp string           `json:"timestamp"`
 }
 
+type ReadyResponse struct {
+	Ready     bool             `json:"ready"`
+	Service   string           `json:"service"`
+	Checks    map[string]Check `json:"checks"`
+	Timestamp string           `json:"timestamp"`
+}
+
 type Check struct {
 	Status   string `json:"status"`   // "ok", "error"
 	Duration string `json:"duration"` // "2ms"
@@ -48,6 +55,29 @@ func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	for _, v := range resp.Checks {
 		if v.Status == "error" {
 			resp.Status = "unhealthy"
+
+			break
+		}
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *HealthHandler) Ready(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	resp := ReadyResponse{
+		Ready:     true,
+		Service:   "books-service",
+		Timestamp: time.Now().Format(time.RFC3339),
+		Checks:    map[string]Check{},
+	}
+
+	resp.Checks["database"] = h.checkDatabase(r.Context())
+
+	for _, v := range resp.Checks {
+		if v.Status == "error" {
+			resp.Ready = false
 
 			break
 		}
