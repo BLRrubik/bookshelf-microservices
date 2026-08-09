@@ -4,9 +4,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { BookOpen } from 'lucide-react';
-import { Button } from '@/components/ui/button.tsx';
-import { Input } from '@/components/ui/input.tsx';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card.tsx';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -15,8 +15,8 @@ import {
   FormLabel,
   FormMessage,
   FormDescription,
-} from '@/components/ui/form.tsx';
-import { useRegister } from '@/api/auth.ts';
+} from '@/components/ui/form';
+import { useRegister } from '@/api/auth';
 
 const registerSchema = z.object({
   username: z.string()

@@ -1,5 +1,5 @@
 import { BookOpen } from "lucide-react";
-import { ServiceStatus } from "./ServiceStatus.tsx";
+import { ServiceStatus } from "./ServiceStatus";
 
 export function Footer() {
   return (
@@ -12,7 +12,7 @@ export function Footer() {
 
         <ServiceStatus />
 
-        <p className="text-sm text-muted-foreground">Проект 2: Microservices</p>
+        <p className="text-sm text-muted-foreground">Проект 3: Event-Driven</p>
       </div>
     </footer>
   );

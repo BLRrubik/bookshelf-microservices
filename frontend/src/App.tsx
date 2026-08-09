@@ -1,13 +1,13 @@
 import { Routes, Route } from 'react-router-dom'
-import { Layout } from '@/components/layout/Layout.tsx'
-import { HomePage } from '@/pages/HomePage.tsx'
-import { BookPage } from '@/pages/BookPage.tsx'
-import { CreateBookPage } from '@/pages/CreateBookPage.tsx'
-import { LoginPage } from '@/pages/LoginPage.tsx'
-import { RegisterPage } from '@/pages/RegisterPage.tsx'
-import { ProfilePage } from '@/pages/ProfilePage.tsx'
-import { UserProfilePage } from '@/pages/UserProfilePage.tsx'
-import { ProtectedRoute } from '@/components/auth/ProtectedRoute.tsx'
+import { Layout } from '@/components/layout/Layout'
+import { HomePage } from '@/pages/HomePage'
+import { BookPage } from '@/pages/BookPage'
+import { CreateBookPage } from '@/pages/CreateBookPage'
+import { LoginPage } from '@/pages/LoginPage'
+import { RegisterPage } from '@/pages/RegisterPage'
+import { ProfilePage } from '@/pages/ProfilePage'
+import { UserProfilePage } from '@/pages/UserProfilePage'
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute'
 
 function App() {
   return (

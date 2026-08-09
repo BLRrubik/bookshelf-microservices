@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { authApi, booksApi } from './client.ts';
-import type { HealthResponse } from '@/types/api.ts';
+import { authApi, booksApi } from './client';
+import type { HealthResponse } from '@/types/api';
 
 export function useAuthHealth() {
   return useQuery({
@@ -25,8 +25,4 @@ export function useBooksHealth() {
     retry: false,
   });
 }
-
-
-
-
 

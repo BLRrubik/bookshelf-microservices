@@ -1,11 +1,12 @@
 /**
- * Маппинг функций на этапы проекта 2 (Microservices Decomposition)
+ * Маппинг функций на этапы проекта 3 (Event-Driven Architecture)
  * 
- * В этом проекте два независимых сервиса:
- * - auth-service (порт 8081) — авторизация пользователей
- * - books-service (порт 8082) — книги и рецензии
+ * Этот проект добавляет асинхронную обработку обложек:
+ * - books-service публикует сообщения в RabbitMQ
+ * - worker-service обрабатывает изображения
+ * - MinIO хранит файлы
  * 
- * Каждая функция становится доступной после реализации соответствующего этапа.
+ * Базовые сервисы (auth, books, reviews) уже готовы из Project 2.
  */
 
 export interface StageInfo {
@@ -14,57 +15,57 @@ export interface StageInfo {
   description: string;
   hint: string;
   icon: string;
-  service: 'auth' | 'books';
+  service: 'auth' | 'books' | 'worker';
 }
 
 export const FEATURE_STAGES: Record<string, StageInfo> = {
-  authHealth: {
-    stage: 5,
-    name: 'Auth Service Health',
-    description: 'Проверка работоспособности auth-service',
-    hint: 'Реализуйте GET /health в auth-service',
-    icon: '🟢',
-    service: 'auth',
-  },
-  booksHealth: {
-    stage: 8,
-    name: 'Books Service Health',
-    description: 'Проверка работоспособности books-service',
-    hint: 'Реализуйте GET /health в books-service',
-    icon: '🟢',
-    service: 'books',
-  },
   auth: {
-    stage: 6,
+    stage: 0,
     name: 'Авторизация',
-    description: 'Регистрация и вход в систему через auth-service',
-    hint: 'Реализуйте POST /api/v1/auth/register и POST /api/v1/auth/login в auth-service',
+    description: 'Готово из Project 2',
+    hint: 'auth-service уже реализован',
     icon: '👤',
     service: 'auth',
   },
   books: {
-    stage: 11,
+    stage: 0,
     name: 'Каталог книг',
-    description: 'Просмотр, создание и редактирование книг через books-service',
-    hint: 'Реализуйте BookHandler в books-service (GET/POST /api/v1/books)',
+    description: 'Готово из Project 2',
+    hint: 'books-service уже реализован',
     icon: '📚',
     service: 'books',
   },
   reviews: {
-    stage: 12,
+    stage: 0,
     name: 'Рецензии',
-    description: 'Просмотр и написание рецензий через books-service',
-    hint: 'Реализуйте ReviewHandler в books-service (GET/POST /api/v1/books/{id}/reviews)',
+    description: 'Готово из Project 2',
+    hint: 'reviews уже реализованы',
     icon: '⭐',
     service: 'books',
   },
-  userInfo: {
-    stage: 16,
-    name: 'Информация о пользователях',
-    description: 'Отображение имён авторов рецензий',
-    hint: 'Реализуйте межсервисный вызов auth-service из books-service',
-    icon: '🔗',
+  coverUpload: {
+    stage: 13,
+    name: 'Загрузка обложки',
+    description: 'Загрузка изображения обложки книги',
+    hint: 'Реализуйте POST /api/v1/books/{id}/cover в CoverHandler',
+    icon: '📤',
     service: 'books',
+  },
+  coverStatus: {
+    stage: 18,
+    name: 'Статус обложки',
+    description: 'Получение статуса обработки и URL обложки',
+    hint: 'Реализуйте GET /api/v1/books/{id}/cover/status в CoverHandler',
+    icon: '🔄',
+    service: 'books',
+  },
+  coverProcessing: {
+    stage: 15,
+    name: 'Обработка обложки',
+    description: 'Worker обрабатывает изображения (resize, thumbnail)',
+    hint: 'Реализуйте обработку изображений в worker-service',
+    icon: '⚙️',
+    service: 'worker',
   },
 };
 
@@ -99,16 +100,4 @@ export function isNetworkError(error: unknown): boolean {
   if (axiosError.message?.includes('Network Error')) return true;
   
   return false;
-}
-
-/**
- * Получить информацию о сервисе по названию функции
- */
-export function getServiceInfo(feature: keyof typeof FEATURE_STAGES) {
-  const info = FEATURE_STAGES[feature];
-  return {
-    ...info,
-    port: info.service === 'auth' ? 8081 : 8082,
-    serviceName: info.service === 'auth' ? 'auth-service' : 'books-service',
-  };
 }

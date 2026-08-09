@@ -1,41 +1,49 @@
-# Project 2: Микросервисы — Инфраструктура
+# Project 3: Async — Инфраструктура
 
 ## О проекте
 
-В этом проекте вы **декомпозируете монолит** на два независимых микросервиса.
+В этом проекте вы добавите **асинхронную обработку** через очереди сообщений и объектное хранилище.
 
 **Что вы реализуете:**
-- **auth-service** — авторизация, JWT, профили пользователей
-- **books-service** — книги, рецензии, межсервисное взаимодействие
-- HTTP-клиент для связи между сервисами
-- Graceful shutdown для корректного завершения
+- **Worker** — фоновый сервис для обработки изображений
+- Публикация и потребление сообщений через RabbitMQ
+- Загрузка и хранение файлов в MinIO (S3-совместимое хранилище)
+- Асинхронный flow: Upload → Queue → Worker → Storage
 
 **Архитектура:**
 ```
                     ┌─────────────────┐
-Frontend (:5174) ──►│  auth-service   │──► auth-postgres (:5432)
+Frontend (:5175) ──►│  auth-service   │──► auth-postgres (:5432)
                     │     (:8081)     │
                     └─────────────────┘
                     ┌─────────────────┐
                  ──►│  books-service  │──► books-postgres (:5433)
-                    │     (:8082)     │
-                    └─────────────────┘
+                    │     (:8082)     │──► MinIO (:9000)
+                    └────────┬────────┘
+                             │ publish
+                             ▼
+                    ┌─────────────────┐
+                    │    RabbitMQ     │
+                    │  (:5672/15672)  │
+                    └────────┬────────┘
+                             │ consume
+                             ▼
+                    ┌─────────────────┐
+                    │     Worker      │──► MinIO (:9000)
+                    └─────────────────┘──► books-postgres (:5433)
 ```
 
-## Содержимое архива
-
-В этом архиве только Docker-конфигурация для запуска всей системы:
+## Содержимое
 
 ```
-├── docker-compose.yml      # БД (auth-postgres, books-postgres) + auth-service + books-service + frontend
+├── frontend/               # React-приложение (готовое)
 ├── auth-service/
-│   └── Dockerfile          # Сборка auth-service (Go)
+│   └── migrations/         # Миграции для auth БД
 ├── books-service/
-│   └── Dockerfile          # Сборка books-service (Go)
-└── README.md
+│   └── migrations/         # Миграции для books БД (включая covers)
+├── docker-compose.yml      # PostgreSQL×2 + RabbitMQ + MinIO + Frontend
+└── README.md               # Этот файл
 ```
-
-Директории **frontend/** и **migrations/** (внутри auth-service и books-service), а также ваш Go-код сервисов должны уже быть в проекте — из шага с инфраструктурой и миграциями. Положите Dockerfile в соответствующие директории и замените корневой `docker-compose.yml` на файл из архива.
 
 ## Запуск
 
@@ -44,25 +52,23 @@ docker compose up -d --build
 ```
 
 После запуска:
-- **Frontend**: http://localhost:5174
-- **auth-service**: http://localhost:8081
-- **books-service**: http://localhost:8082
-- **auth-postgres**: localhost:5432 (БД `auth`)
-- **books-postgres**: localhost:5433 (БД `books`)
+- **Frontend**: http://localhost:5175
+- **auth-postgres**: localhost:5432
+- **books-postgres**: localhost:5433
+- **RabbitMQ UI**: http://localhost:15672 (guest/guest)
+- **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
 
 ## Как это работает
 
-Frontend показывает **статус каждого микросервиса** в футере:
+Frontend показывает новые возможности по мере реализации:
 
-| Индикатор | Значение |
-|-----------|----------|
-| **Auth ●** (зелёный) | auth-service работает |
-| **Books ●** (зелёный) | books-service работает |
-| **✕** (красный) | Сервис недоступен |
+1. Реализовали Worker → появилась загрузка обложек
+2. Загрузили обложку → статус "Processing..."
+3. Worker обработал → обложка появляется!
 
-По мере реализации сервисов — индикаторы будут становиться зелёными, а функции — доступными.
+При остановке Worker сообщения сохраняются в очереди RabbitMQ и будут обработаны после перезапуска.
 
-## Подключение к базам данных
+## Подключение к сервисам
 
 **auth-postgres:**
 ```
@@ -72,6 +78,18 @@ postgres://postgres:postgres@localhost:5432/auth?sslmode=disable
 **books-postgres:**
 ```
 postgres://postgres:postgres@localhost:5433/books?sslmode=disable
+```
+
+**RabbitMQ:**
+```
+amqp://guest:guest@localhost:5672/
+```
+
+**MinIO:**
+```
+Endpoint: localhost:9000
+Access Key: minioadmin
+Secret Key: minioadmin
 ```
 
 ## Тестовые пользователи
@@ -106,9 +124,19 @@ docker ps  # Проверьте, что Docker daemon работает
 
 ### Ошибка подключения к БД
 ```bash
-docker compose ps                # Статус контейнеров
-docker compose logs auth-postgres   # Логи auth БД
-docker compose logs books-postgres  # Логи books БД
+docker compose ps                  # Статус контейнеров
+docker compose logs auth-postgres  # Логи auth БД
+docker compose logs books-postgres # Логи books БД
+```
+
+### RabbitMQ не запускается
+```bash
+docker compose logs rabbitmq  # Логи RabbitMQ
+```
+
+### MinIO не запускается
+```bash
+docker compose logs minio  # Логи MinIO
 ```
 
 ### Пересборка frontend
@@ -117,35 +145,8 @@ docker compose build --no-cache frontend
 docker compose up -d frontend
 ```
 
-### Пересборка Go-сервисов (после изменения кода)
-```bash
-docker compose build --no-cache auth-service books-service
-docker compose up -d auth-service books-service
-```
-
 ## Инструкции по реализации
 
 Подробное описание каждого этапа находится на сайте курса:
 
 **https://praxiscode.io**
-
-## Асинхронная обработка
-
-### Новые компоненты
-
-- **RabbitMQ** — очередь сообщений для асинхронных задач
-- **MinIO** — S3-совместимое хранилище для обложек книг
-- **worker-service** — фоновый обработчик задач из очереди
-
-### Сценарий обработки обложки
-
-1. Пользователь загружает изображение → books-service сохраняет оригинал в MinIO
-2. books-service публикует сообщение в RabbitMQ
-3. worker-service забирает сообщение, обрабатывает изображение (resize)
-4. worker-service загружает результат в MinIO и обновляет статус в БД
-
-### Почему асинхронно?
-
-Обработка изображений — тяжёлая операция (1-5 секунд). Если делать синхронно,
-пользователь будет ждать. Асинхронный подход: пользователь сразу получает ответ
-"обложка обрабатывается", а результат появляется в фоне.

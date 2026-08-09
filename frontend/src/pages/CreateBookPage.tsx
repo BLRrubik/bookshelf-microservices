@@ -1,13 +1,15 @@
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button.tsx';
-import { Input } from '@/components/ui/input.tsx';
-import { Textarea } from '@/components/ui/textarea.tsx';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card.tsx';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -16,8 +18,10 @@ import {
   FormLabel,
   FormMessage,
   FormDescription,
-} from '@/components/ui/form.tsx';
-import { useCreateBook } from '@/api/books.ts';
+} from '@/components/ui/form';
+import { CoverPicker } from '@/components/books/CoverPicker';
+import { useCreateBook } from '@/api/books';
+import { booksApi } from '@/api/client';
 
 const bookSchema = z.object({
   title: z.string().min(1, 'Обязательное поле').max(255),
@@ -32,6 +36,8 @@ type BookFormData = z.infer<typeof bookSchema>;
 export function CreateBookPage() {
   const navigate = useNavigate();
   const createBook = useCreateBook();
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
   
   const form = useForm<BookFormData>({
     resolver: zodResolver(bookSchema),
@@ -44,19 +50,55 @@ export function CreateBookPage() {
     },
   });
 
+  const isSubmitting = createBook.isPending || isUploadingCover;
+
   const onSubmit = async (data: BookFormData) => {
-    const book = await createBook.mutateAsync({
-      ...data,
-      published_year: data.published_year ? Number(data.published_year) : undefined,
-    });
-    navigate(`/books/${book.id}`);
+    try {
+      // Step 1: Create the book
+      const book = await createBook.mutateAsync({
+        ...data,
+        published_year: data.published_year ? Number(data.published_year) : undefined,
+      });
+
+      // Step 2: Upload cover if selected
+      if (coverFile) {
+        setIsUploadingCover(true);
+        try {
+          const formData = new FormData();
+          formData.append('file', coverFile);
+          
+          await booksApi.post(`/api/v1/books/${book.id}/cover`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          });
+          toast.success('Книга добавлена с обложкой!');
+        } catch (error) {
+          // Book was created, but cover upload failed
+          toast.warning('Книга добавлена, но обложка не загружена. Попробуйте загрузить позже.');
+        } finally {
+          setIsUploadingCover(false);
+        }
+      }
+
+      // Navigate to the book page
+      navigate(`/books/${book.id}`);
+    } catch {
+      // Book creation failed - error is handled by useCreateBook
+    }
+  };
+
+  const getButtonText = () => {
+    if (isUploadingCover) return 'Загрузка обложки...';
+    if (createBook.isPending) return 'Создание книги...';
+    return 'Добавить книгу';
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="max-w-2xl mx-auto space-y-6"
+      className="max-w-3xl mx-auto space-y-6"
     >
       <Button variant="ghost" asChild>
         <Link to="/">
@@ -75,34 +117,85 @@ export function CreateBookPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="title"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Название *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Чистая архитектура" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Cover + Title/Author row */}
+              <div className="grid md:grid-cols-[200px_1fr] gap-6">
+                {/* Cover Picker */}
+                <div>
+                  <FormLabel className="mb-2 block">Обложка</FormLabel>
+                  <CoverPicker
+                    file={coverFile}
+                    onFileChange={setCoverFile}
+                    disabled={isSubmitting}
+                  />
+                </div>
 
-              <FormField
-                control={form.control}
-                name="author"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Автор *</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Роберт Мартин" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                {/* Title and Author */}
+                <div className="space-y-4">
+                  <FormField
+                    control={form.control}
+                    name="title"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Название *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Чистая архитектура" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
+                  <FormField
+                    control={form.control}
+                    name="author"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Автор *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Роберт Мартин" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="isbn"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>ISBN</FormLabel>
+                          <FormControl>
+                            <Input placeholder="978-5-4461-0772-8" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="published_year"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Год публикации</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="number" 
+                              placeholder="2018" 
+                              {...field} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Description - full width */}
               <FormField
                 control={form.control}
                 name="description"
@@ -122,48 +215,19 @@ export function CreateBookPage() {
                 )}
               />
 
-              <div className="grid grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="isbn"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ISBN</FormLabel>
-                      <FormControl>
-                        <Input placeholder="978-5-4461-0772-8" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="published_year"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Год публикации</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          placeholder="2018" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
               <div className="flex gap-4">
                 <Button 
                   type="submit" 
-                  disabled={createBook.isPending}
+                  disabled={isSubmitting}
                 >
-                  {createBook.isPending ? 'Добавление...' : 'Добавить книгу'}
+                  {getButtonText()}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => navigate(-1)}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => navigate(-1)}
+                  disabled={isSubmitting}
+                >
                   Отмена
                 </Button>
               </div>
@@ -174,4 +238,3 @@ export function CreateBookPage() {
     </motion.div>
   );
 }
-

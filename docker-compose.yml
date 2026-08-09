@@ -34,63 +34,55 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-#
-#  # Auth Service (Go)
-#  auth-service:
-#    build: ./auth-service
-#    ports:
-#      - "8081:8081"
-#    environment:
-#      PORT: "8081"
-#      DATABASE_URL: "postgres://postgres:postgres@auth-postgres:5432/auth?sslmode=disable"
-#      SERVICE_KEY: "serviceKey"
-#    depends_on:
-#      auth-postgres:
-#        condition: service_healthy
-#    healthcheck:
-#      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/health"]
-#      interval: 5s
-#      timeout: 3s
-#      retries: 5
-#      start_period: 5s
-#
-#  # Books Service (Go)
-#  books-service:
-#    build: ./books-service
-#    ports:
-#      - "8082:8082"
-#    environment:
-#      PORT: "8082"
-#      DATABASE_URL: "postgres://postgres:postgres@books-postgres:5432/books?sslmode=disable"
-#      AUTH_SERVICE_URL: "http://auth-service:8081"
-#      SERVICE_KEY: "serviceKey"
-#    depends_on:
-#      books-postgres:
-#        condition: service_healthy
-#      auth-service:
-#        condition: service_healthy
-#    healthcheck:
-#      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8082/health"]
-#      interval: 5s
-#      timeout: 3s
-#      retries: 5
-#      start_period: 5s
+
+  # RabbitMQ Message Broker
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_running"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO Object Storage
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   # Frontend Application
   frontend:
     build: ./frontend
     ports:
-      - "5174:80"
+      - "5175:80"
     depends_on:
       auth-postgres:
         condition: service_healthy
       books-postgres:
         condition: service_healthy
-#      auth-service:
-#        condition: service_healthy
-#      books-service:
-#        condition: service_healthy
 
 volumes:
   auth_postgres_data:
   books_postgres_data:
+  rabbitmq_data:
+  minio_data:

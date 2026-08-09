@@ -1,5 +1,5 @@
-import { Badge } from '@/components/ui/badge.tsx';
-import { useAuthHealth, useBooksHealth } from '@/api/health.ts';
+import { Badge } from '@/components/ui/badge';
+import { useAuthHealth, useBooksHealth } from '@/api/health';
 
 export function ServiceStatus() {
   const authHealth = useAuthHealth();
@@ -32,8 +32,4 @@ export function ServiceStatus() {
     </div>
   );
 }
-
-
-
-
 

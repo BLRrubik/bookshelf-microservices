@@ -4,11 +4,11 @@ import { z } from 'zod';
 import { motion } from 'framer-motion';
 import { User, BookOpen, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button.tsx';
-import { Input } from '@/components/ui/input.tsx';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card.tsx';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar.tsx';
-import { Separator } from '@/components/ui/separator.tsx';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 import {
   Form,
   FormControl,
@@ -16,11 +16,11 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form.tsx';
-import { useAuthStore } from '@/stores/auth.ts';
-import { useUpdateProfile } from '@/api/auth.ts';
-import { useUserReviews } from '@/api/reviews.ts';
-import { formatDate, formatDistanceToNow } from '@/lib/date.ts';
+} from '@/components/ui/form';
+import { useAuthStore } from '@/stores/auth';
+import { useUpdateProfile } from '@/api/auth';
+import { useUserReviews } from '@/api/reviews';
+import { formatDate, formatDistanceToNow } from '@/lib/date';
 
 const profileSchema = z.object({
   username: z.string()

@@ -1,9 +1,9 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Button } from '@/components/ui/button.tsx';
-import { Textarea } from '@/components/ui/textarea.tsx';
-import { Input } from '@/components/ui/input.tsx';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import {
   Form,
   FormControl,
@@ -11,9 +11,9 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '@/components/ui/form.tsx';
-import { StarRating } from './StarRating.tsx';
-import { useCreateReview } from '@/api/reviews.ts';
+} from '@/components/ui/form';
+import { StarRating } from './StarRating';
+import { useCreateReview } from '@/api/reviews';
 
 const reviewSchema = z.object({
   rating: z.number().min(1, 'Выберите оценку').max(5),

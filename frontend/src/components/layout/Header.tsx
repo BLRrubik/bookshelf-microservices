@@ -1,17 +1,17 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Plus, User, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button.tsx';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar.tsx';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu.tsx';
-import { SearchInput } from './SearchInput.tsx';
-import { useAuthStore } from '@/stores/auth.ts';
-import { useLogout } from '@/api/auth.ts';
+} from '@/components/ui/dropdown-menu';
+import { SearchInput } from './SearchInput';
+import { useAuthStore } from '@/stores/auth';
+import { useLogout } from '@/api/auth';
 
 export function Header() {
   const { isAuthenticated, user } = useAuthStore();

@@ -1,18 +1,18 @@
 import { useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button.tsx';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select.tsx';
-import { BookGrid } from '@/components/books/BookGrid.tsx';
-import { useBooks } from '@/api/books.ts';
-import { FeatureLocked } from '@/components/ui/FeatureLocked.tsx';
-import { FEATURE_STAGES, isFeatureNotImplemented } from '@/config/stages.ts';
+} from '@/components/ui/select';
+import { BookGrid } from '@/components/books/BookGrid';
+import { useBooks } from '@/api/books';
+import { FeatureLocked } from '@/components/ui/FeatureLocked';
+import { FEATURE_STAGES, isFeatureNotImplemented } from '@/config/stages';
 
 export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -56,15 +56,15 @@ export function HomePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Показываем заглушку, если books-service не реализован
+  // Показываем заглушку, если books-service не запущен
   if (isError && isFeatureNotImplemented(error)) {
     const booksFeature = FEATURE_STAGES.books;
     return (
       <FeatureLocked
         title={`${booksFeature.icon} ${booksFeature.name}`}
-        description={booksFeature.description}
-        stage={booksFeature.stage}
-        hint={booksFeature.hint}
+        description="books-service должен быть запущен для отображения каталога"
+        stage={0}
+        hint="Запусти docker-compose up или go run ./cmd/server в books-service"
         serviceName="books-service"
       />
     );

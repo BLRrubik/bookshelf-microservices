@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Edit, Trash2, X, Check } from 'lucide-react';
-import { formatDistanceToNow } from '@/lib/date.ts';
-import { Card, CardContent, CardHeader } from '@/components/ui/card.tsx';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar.tsx';
-import { Button } from '@/components/ui/button.tsx';
-import { Input } from '@/components/ui/input.tsx';
-import { Textarea } from '@/components/ui/textarea.tsx';
+import { formatDistanceToNow } from '@/lib/date';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Dialog,
   DialogContent,
@@ -15,10 +15,10 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog.tsx';
-import { StarRating } from './StarRating.tsx';
-import { useUpdateReview, useDeleteReview } from '@/api/reviews.ts';
-import type { Review } from '@/types/api.ts';
+} from '@/components/ui/dialog';
+import { StarRating } from './StarRating';
+import { useUpdateReview, useDeleteReview } from '@/api/reviews';
+import type { Review } from '@/types/api';
 
 interface ReviewCardProps {
   review: Review;

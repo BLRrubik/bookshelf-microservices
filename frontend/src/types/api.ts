@@ -1,4 +1,4 @@
-// Types based on OpenAPI spec: project2-*-openapi.yaml
+// Types based on OpenAPI spec: project3-books-service-openapi.yaml
 
 // ==================== AUTH ====================
 export interface RegisterRequest {
@@ -14,9 +14,14 @@ export interface LoginRequest {
 
 export interface AuthResponse {
   access_token: string;
+  refresh_token: string;
   token_type: 'Bearer';
   expires_in: number;
   user: User;
+}
+
+export interface RefreshTokenRequest {
+  refresh_token: string;
 }
 
 // ==================== USER ====================
@@ -39,6 +44,8 @@ export interface UpdateUserRequest {
 }
 
 // ==================== BOOK ====================
+export type CoverStatus = 'none' | 'processing' | 'ready' | 'failed';
+
 export interface Book {
   id: string;
   title: string;
@@ -51,6 +58,9 @@ export interface Book {
   created_by: string;
   created_at: string;
   updated_at: string;
+  // Project 3: Cover fields
+  cover_url?: string | null;
+  cover_status: CoverStatus;
 }
 
 export interface BookDetails extends Book {
@@ -82,6 +92,23 @@ export interface UpdateBookRequest {
 export interface BookListResponse {
   data: Book[];
   pagination: Pagination;
+}
+
+// ==================== COVER ====================
+export interface CoverUploadResponse {
+  message: string;
+  cover_id: string;
+  status: CoverStatus;
+  status_url: string;
+}
+
+export interface CoverStatusResponse {
+  status: CoverStatus;
+  started_at: string;
+  completed_at?: string;
+  url?: string;
+  thumbnail_url?: string;
+  error?: string;
 }
 
 // ==================== REVIEW ====================
@@ -156,6 +183,7 @@ export interface BooksParams {
   year_from?: number;
   year_to?: number;
   min_rating?: number;
+  has_cover?: boolean;
 }
 
 export interface ReviewsParams {

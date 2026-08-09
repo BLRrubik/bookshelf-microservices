@@ -1,6 +1,6 @@
-import { BookCard } from './BookCard.tsx';
-import { Skeleton } from '@/components/ui/skeleton.tsx';
-import type { Book } from '@/types/api.ts';
+import { BookCard } from './BookCard';
+import { Skeleton } from '@/components/ui/skeleton';
+import type { Book } from '@/types/api';
 
 interface BookGridProps {
   books: Book[];

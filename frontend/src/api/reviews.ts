@@ -1,13 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { booksApi } from './client.ts';
+import { booksApi } from './client';
 import type { 
   Review,
   ReviewListResponse,
   ReviewsParams,
   CreateReviewRequest,
   UpdateReviewRequest
-} from '@/types/api.ts';
+} from '@/types/api';
 
 export function useBookReviews(bookId: string, params: ReviewsParams = {}) {
   return useQuery({

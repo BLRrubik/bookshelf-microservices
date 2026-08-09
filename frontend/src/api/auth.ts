@@ -1,8 +1,8 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { authApi } from './client.ts';
-import { useAuthStore } from '@/stores/auth.ts';
+import { authApi } from './client';
+import { useAuthStore } from '@/stores/auth';
 import type { 
   AuthResponse, 
   LoginRequest, 
@@ -10,7 +10,12 @@ import type {
   User,
   PublicUser,
   UpdateUserRequest
-} from '@/types/api.ts';
+} from '@/types/api';
+
+// Project 2: AuthResponse now includes refresh_token
+interface AuthResponseP2 extends AuthResponse {
+  refresh_token: string;
+}
 
 export function useLogin() {
   const navigate = useNavigate();
@@ -18,11 +23,11 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: async (data: LoginRequest) => {
-      const response = await authApi.post<AuthResponse>('/api/v1/auth/login', data);
+      const response = await authApi.post<AuthResponseP2>('/api/v1/auth/login', data);
       return response.data;
     },
     onSuccess: (data) => {
-      setAuth(data.access_token, data.user, data.expires_in);
+      setAuth(data.access_token, data.refresh_token, data.user);
       toast.success('Добро пожаловать!');
       navigate('/');
     },
@@ -38,11 +43,11 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: async (data: RegisterRequest) => {
-      const response = await authApi.post<AuthResponse>('/api/v1/auth/register', data);
+      const response = await authApi.post<AuthResponseP2>('/api/v1/auth/register', data);
       return response.data;
     },
     onSuccess: (data) => {
-      setAuth(data.access_token, data.user, data.expires_in);
+      setAuth(data.access_token, data.refresh_token, data.user);
       toast.success('Регистрация успешна!');
       navigate('/');
     },

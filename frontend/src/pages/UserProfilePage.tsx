@@ -1,12 +1,12 @@
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { User, BookOpen, Star, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button.tsx';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card.tsx';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar.tsx';
-import { useUser } from '@/api/auth.ts';
-import { useUserReviews } from '@/api/reviews.ts';
-import { formatDate, formatDistanceToNow } from '@/lib/date.ts';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useUser } from '@/api/auth';
+import { useUserReviews } from '@/api/reviews';
+import { formatDate, formatDistanceToNow } from '@/lib/date';
 
 export function UserProfilePage() {
   const { userId } = useParams<{ userId: string }>();

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input.tsx';
+import { Input } from '@/components/ui/input';
 
 export function SearchInput() {
   const navigate = useNavigate();
