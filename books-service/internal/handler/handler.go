@@ -23,14 +23,14 @@ func NewHandler(service *service.Service, db *sqlx.DB, authClient *client.AuthCl
 	return &Handler{
 		bookHandler:   NewBookHandler(service.BookService),
 		reviewHandler: NewReviewHandler(service.ReviewService),
-		healthHandler: NewHealthHandler(db),
+		healthHandler: NewHealthHandler(db, authClient),
 		authClient:    authClient,
 	}
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Get("/health", h.healthHandler.Health)
-	r.Get("/ready", h.Ready)
+	r.Get("/ready", h.healthHandler.Ready)
 
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/books/{book_id}/reviews", h.reviewHandler.List)
@@ -52,10 +52,6 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		})
 
 	})
-}
-
-func (h *Handler) Ready(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
 }
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {

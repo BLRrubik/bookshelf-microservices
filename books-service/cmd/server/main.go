@@ -40,7 +40,7 @@ func main() {
 
 	repos := repository.New(db)
 	services := service.New(repos, cfg.AuthServiceURL)
-	handlers := handler.NewHandler(services, authClient)
+	handlers := handler.NewHandler(services, db, authClient)
 
 	r := chi.NewRouter()
 

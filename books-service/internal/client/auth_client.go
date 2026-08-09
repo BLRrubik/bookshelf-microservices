@@ -3,6 +3,8 @@ package client
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"net/http"
 	"time"
 )
 
@@ -19,6 +21,10 @@ type VerifyResponse struct {
 
 type GetUsersRequest struct {
 	IDs []string `json:"ids"`
+}
+
+type HealthResponse struct {
+	Status string `json:"status"`
 }
 
 type UserPublic struct {
@@ -105,4 +111,27 @@ func (c *AuthClient) GetUsersByIDs(ctx context.Context, ids []string) ([]UserPub
 	}
 
 	return response, nil
+}
+
+func (c *AuthClient) Health(ctx context.Context) (*HealthResponse, error) {
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	resp, err := c.httpClient.Get(ctx, "/health", headers)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("unexpected status: " + resp.Status)
+	}
+
+	var response HealthResponse
+	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return nil, err
+	}
+
+	return &response, nil
 }
