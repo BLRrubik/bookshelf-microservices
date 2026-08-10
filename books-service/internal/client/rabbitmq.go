@@ -1,16 +1,27 @@
 package client
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 const QueueImageCompress = "image_compress"
 
+type ImageCompressMessage struct {
+	BookID       string `json:"book_id"`
+	CoverID      string `json:"cover_id"`
+	OriginalPath string `json:"original_path"`
+}
+
 type RabbitMQClient struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
+	queue   string
 }
 
 func NewRabbitMQClient(url string) (*RabbitMQClient, error) {
@@ -31,9 +42,14 @@ func NewRabbitMQClient(url string) (*RabbitMQClient, error) {
 }
 
 func (c *RabbitMQClient) DeclareQueue(name string) error {
-	_, err := c.channel.QueueDeclare(name, true, false, false, false, nil)
+	q, err := c.channel.QueueDeclare(name, true, false, false, false, nil)
+	if err != nil {
+		return err
+	}
 
-	return err
+	c.queue = q.Name
+
+	return nil
 }
 
 func (c *RabbitMQClient) Close() error {
@@ -56,4 +72,30 @@ func (c *RabbitMQClient) HealthCheck() error {
 	}
 
 	return nil
+}
+
+func (c *RabbitMQClient) PublishImageCompress(ctx context.Context, msg ImageCompressMessage) error {
+	slog.Info(fmt.Sprintf("Published image compress message for book %s", msg.BookID))
+
+	bytes, err := json.Marshal(msg)
+	if err != nil {
+		return err
+	}
+
+	return c.publish(ctx, c.queue, bytes)
+}
+
+func (c *RabbitMQClient) publish(ctx context.Context, queue string, body []byte) error {
+	return c.channel.PublishWithContext(
+		ctx,
+		amqp.DefaultExchange,
+		queue,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType:  "application/json",
+			DeliveryMode: amqp.Persistent,
+			Body:         body,
+		},
+	)
 }
