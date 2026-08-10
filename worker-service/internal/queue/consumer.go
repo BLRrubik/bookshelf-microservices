@@ -2,11 +2,14 @@ package queue
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
+
+var ErrTemporary = errors.New("temporary error")
 
 type HandlerFunc func(body []byte) error
 
@@ -67,11 +70,20 @@ func (c *Consumer) Start() error {
 func (c *Consumer) consume(queue string, handler HandlerFunc, msgs <-chan amqp.Delivery) {
 	for msg := range msgs {
 		if err := handler(msg.Body); err != nil {
-			slog.Error(fmt.Sprintf("Failed to handle message from queue %s: %s", queue, err))
+			var requeue bool
+			if errors.Is(err, ErrTemporary) {
+				requeue = true
+			}
+
+			if err = msg.Nack(false, requeue); err != nil {
+				slog.Error("Failed to nack message from queue %s: %s", queue, err)
+			}
+
+			continue
 		}
 
-		if err := msg.Ack(true); err != nil {
-			slog.Error(fmt.Sprintf("Failed to acknowledge message from queue %s: %s", queue, err))
+		if err := msg.Ack(false); err != nil {
+			slog.Error(fmt.Sprintf("Failed to ack message from queue %s: %s", queue, err))
 		}
 	}
 }
