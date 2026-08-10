@@ -19,11 +19,16 @@ type Handler struct {
 	authClient    *client.AuthClient
 }
 
-func NewHandler(service *service.Service, db *sqlx.DB, authClient *client.AuthClient) *Handler {
+func NewHandler(
+	service *service.Service,
+	db *sqlx.DB,
+	authClient *client.AuthClient,
+	rabbitMQClient *client.RabbitMQClient,
+) *Handler {
 	return &Handler{
 		bookHandler:   NewBookHandler(service.BookService),
 		reviewHandler: NewReviewHandler(service.ReviewService),
-		healthHandler: NewHealthHandler(db, authClient),
+		healthHandler: NewHealthHandler(db, authClient, rabbitMQClient),
 		authClient:    authClient,
 	}
 }

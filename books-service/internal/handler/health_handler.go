@@ -31,14 +31,16 @@ type Check struct {
 }
 
 type HealthHandler struct {
-	db         *sqlx.DB
-	authClient *client.AuthClient
+	db             *sqlx.DB
+	authClient     *client.AuthClient
+	rabbitMQClient *client.RabbitMQClient
 }
 
-func NewHealthHandler(db *sqlx.DB, authClient *client.AuthClient) *HealthHandler {
+func NewHealthHandler(db *sqlx.DB, authClient *client.AuthClient, rabbitMQClient *client.RabbitMQClient) *HealthHandler {
 	return &HealthHandler{
-		db:         db,
-		authClient: authClient,
+		db:             db,
+		authClient:     authClient,
+		rabbitMQClient: rabbitMQClient,
 	}
 }
 
@@ -54,6 +56,7 @@ func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp.Checks["database"] = h.checkDatabase(r.Context())
+	resp.Checks["rabbitMQ"] = h.checkRabbitMQ(r.Context())
 
 	for _, v := range resp.Checks {
 		if v.Status == "error" {
@@ -77,6 +80,7 @@ func (h *HealthHandler) Ready(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp.Checks["database"] = h.checkDatabase(r.Context())
+	resp.Checks["rabbitMQ"] = h.checkRabbitMQ(r.Context())
 	resp.Checks["auth-service"] = h.checkAuthService(r.Context())
 
 	for _, v := range resp.Checks {
@@ -96,6 +100,24 @@ func (h *HealthHandler) checkDatabase(ctx context.Context) Check {
 
 	now := time.Now()
 	err := h.db.PingContext(pingCtx)
+	after := time.Since(now)
+
+	check := Check{
+		Status:   "ok",
+		Duration: after.String(),
+	}
+
+	if err != nil {
+		check.Error = err.Error()
+		check.Status = "error"
+	}
+
+	return check
+}
+
+func (h *HealthHandler) checkRabbitMQ(ctx context.Context) Check {
+	now := time.Now()
+	err := h.rabbitMQClient.HealthCheck()
 	after := time.Since(now)
 
 	check := Check{

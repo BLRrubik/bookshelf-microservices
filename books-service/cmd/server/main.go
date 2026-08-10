@@ -30,6 +30,12 @@ func main() {
 	}
 	defer db.Close()
 
+	rabbitMQClient, err := client.NewRabbitMQClient("amqp://guest:guest@localhost:5672")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rabbitMQClient.Close()
+
 	authClient := client.NewAuthClient(
 		"http://localhost:8081",
 		time.Second*5,
@@ -40,7 +46,7 @@ func main() {
 
 	repos := repository.New(db)
 	services := service.New(repos, authClient)
-	handlers := handler.NewHandler(services, db, authClient)
+	handlers := handler.NewHandler(services, db, authClient, rabbitMQClient)
 
 	r := chi.NewRouter()
 
