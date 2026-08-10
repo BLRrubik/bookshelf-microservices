@@ -2,193 +2,200 @@
 
 // ==================== AUTH ====================
 export interface RegisterRequest {
-  username: string;
-  email: string;
-  password: string;
+    username: string;
+    email: string;
+    password: string;
 }
 
 export interface LoginRequest {
-  email: string;
-  password: string;
+    email: string;
+    password: string;
 }
 
 export interface AuthResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: 'Bearer';
-  expires_in: number;
-  user: User;
+    access_token: string;
+    refresh_token: string;
+    token_type: "Bearer";
+    expires_in: number;
+    user: User;
 }
 
 export interface RefreshTokenRequest {
-  refresh_token: string;
+    refresh_token: string;
 }
 
 // ==================== USER ====================
 export interface User {
-  id: string;
-  username: string;
-  email: string;
-  created_at: string;
-  updated_at: string;
+    id: string;
+    username: string;
+    email: string;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface PublicUser {
-  id: string;
-  username: string;
-  created_at: string;
+    id: string;
+    username: string;
+    created_at: string;
 }
 
 export interface UpdateUserRequest {
-  username?: string;
+    username?: string;
 }
 
 // ==================== BOOK ====================
-export type CoverStatus = 'none' | 'processing' | 'ready' | 'failed';
+export type CoverStatus = "none" | "processing" | "ready" | "failed";
 
 export interface Book {
-  id: string;
-  title: string;
-  author: string;
-  description?: string;
-  isbn?: string;
-  published_year?: number;
-  average_rating: number | null;
-  reviews_count: number;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  // Project 3: Cover fields
-  cover_url?: string | null;
-  cover_status: CoverStatus;
+    id: string;
+    title: string;
+    author: string;
+    description?: string;
+    isbn?: string;
+    published_year?: number;
+    average_rating: number | null;
+    reviews_count: number;
+    created_by: string;
+    created_at: string;
+    updated_at: string;
+    // Project 3: Cover fields
+    cover_url?: string | null;
+    cover_status: CoverStatus;
 }
 
 export interface BookDetails extends Book {
-  creator: UserSummary;
-  recent_reviews: Review[];
+    creator: UserSummary;
+    recent_reviews: Review[];
 }
 
 export interface UserSummary {
-  id: string;
-  username: string;
+    id: string;
+    username: string;
 }
 
 export interface CreateBookRequest {
-  title: string;
-  author: string;
-  description?: string;
-  isbn?: string;
-  published_year?: number;
+    title: string;
+    author: string;
+    description?: string;
+    isbn?: string;
+    published_year?: number;
 }
 
 export interface UpdateBookRequest {
-  title?: string;
-  author?: string;
-  description?: string;
-  isbn?: string;
-  published_year?: number;
+    title?: string;
+    author?: string;
+    description?: string;
+    isbn?: string;
+    published_year?: number;
 }
 
 export interface BookListResponse {
-  data: Book[];
-  pagination: Pagination;
+    data: Book[];
+    pagination: Pagination;
 }
 
 // ==================== COVER ====================
 export interface CoverUploadResponse {
-  message: string;
-  cover_id: string;
-  status: CoverStatus;
-  status_url: string;
+    message: string;
+    cover_id: string;
+    status: CoverStatus;
+    status_url: string;
 }
 
 export interface CoverStatusResponse {
-  status: CoverStatus;
-  started_at: string;
-  completed_at?: string;
-  url?: string;
-  thumbnail_url?: string;
-  error?: string;
+    status: CoverStatus;
+    started_at: string;
+    completed_at?: string;
+    url?: string;
+    thumbnail_url?: string;
+    error?: string;
 }
 
 // ==================== REVIEW ====================
 export interface Review {
-  id: string;
-  book_id: string;
-  user_id: string;
-  user: ReviewAuthor;
-  rating: number;
-  title?: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
+    id: string;
+    book_id: string;
+    user_id: string;
+    user: ReviewAuthor;
+    rating: number;
+    title?: string;
+    content: string;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface ReviewAuthor {
-  id: string;
-  username: string;
+    id: string;
+    username: string;
 }
 
 export interface CreateReviewRequest {
-  rating: number;
-  title?: string;
-  content: string;
+    rating: number;
+    title?: string;
+    content: string;
 }
 
 export interface UpdateReviewRequest {
-  rating?: number;
-  title?: string;
-  content?: string;
+    rating?: number;
+    title?: string;
+    content?: string;
 }
 
 export interface ReviewListResponse {
-  data: Review[];
-  pagination: Pagination;
+    data: Review[];
+    pagination: Pagination;
 }
 
 // ==================== COMMON ====================
 export interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  total_pages: number;
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
 }
 
 export interface ApiError {
-  code: string;
-  message: string;
-  details?: ErrorDetail[];
-  request_id?: string;
+    code: string;
+    message: string;
+    details?: ErrorDetail[];
+    request_id?: string;
 }
 
 export interface ErrorDetail {
-  field: string;
-  message: string;
+    field: string;
+    message: string;
 }
 
 export interface HealthResponse {
-  status: 'ok' | 'degraded' | 'unhealthy';
-  version: string;
-  timestamp: string;
-  checks?: Record<string, string>;
+    status: "ok" | "degraded" | "unhealthy";
+    version: string;
+    timestamp: string;
+    checks?: Record<string, string>;
+}
+
+export interface ReadyResponse {
+    ready: boolean;
+    version: string;
+    timestamp: string;
+    checks?: Record<string, string>;
 }
 
 // ==================== QUERY PARAMS ====================
 export interface BooksParams {
-  page?: number;
-  limit?: number;
-  search?: string;
-  sort?: 'title' | 'author' | 'created_at' | 'rating' | 'published_year';
-  order?: 'asc' | 'desc';
-  year_from?: number;
-  year_to?: number;
-  min_rating?: number;
-  has_cover?: boolean;
+    page?: number;
+    limit?: number;
+    search?: string;
+    sort?: "title" | "author" | "created_at" | "rating" | "published_year";
+    order?: "asc" | "desc";
+    year_from?: number;
+    year_to?: number;
+    min_rating?: number;
+    has_cover?: boolean;
 }
 
 export interface ReviewsParams {
-  page?: number;
-  limit?: number;
-  sort?: 'created_at' | 'rating';
-  order?: 'asc' | 'desc';
+    page?: number;
+    limit?: number;
+    sort?: "created_at" | "rating";
+    order?: "asc" | "desc";
 }

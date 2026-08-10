@@ -5,10 +5,10 @@ export function ServiceStatus() {
   const authHealth = useAuthHealth();
   const booksHealth = useBooksHealth();
 
-  const getStatus = (isLoading: boolean, isError: boolean, data?: { status: string }) => {
+  const getStatus = (isLoading: boolean, isError: boolean, data?: { ready: boolean }) => {
     if (isLoading) return 'loading';
     if (isError) return 'error';
-    return data?.status === 'ok' ? 'ok' : 'error';
+    return data?.ready ? 'ok' : 'error';
   };
 
   const authStatus = getStatus(authHealth.isLoading, authHealth.isError, authHealth.data);
