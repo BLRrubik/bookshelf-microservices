@@ -92,7 +92,7 @@ func (c *AuthClient) GetUsersByIDs(ctx context.Context, ids []string) ([]UserPub
 		IDs: ids,
 	}
 
-	resp, err := c.httpClient.Post(ctx, "/internal/v1/auth/get_users", req, headers)
+	resp, err := c.httpClient.Post(ctx, "/internal/v1/users/batch", req, headers)
 	if err != nil {
 		return nil, err
 	}

@@ -24,7 +24,7 @@ func (h *ReviewHandler) List(w http.ResponseWriter, r *http.Request) {
 	bookID := chi.URLParam(r, "book_id")
 	page, limit := extractPageAndLimit(r)
 
-	reviews, count, err := h.svc.ListByBook(r.Context(), bookID, page, limit)
+	reviews, err := h.svc.ListByBook(r.Context(), bookID, page, limit)
 	if err != nil {
 		if errors.Is(err, service.ErrBookNotFound) {
 			writeError(w, r, http.StatusNotFound, "book not found")
@@ -37,20 +37,7 @@ func (h *ReviewHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	reviewsResp := make([]domain.ReviewResponse, len(reviews))
-	for i, review := range reviews {
-		reviewsResp[i] = review.ToResponse()
-	}
-
-	writeJSON(w, http.StatusOK, domain.ReviewListResponse{
-		Data: reviewsResp,
-		Pagination: domain.Pagination{
-			Page:       page,
-			Limit:      limit,
-			Total:      count,
-			TotalPages: (count + limit - 1) / limit,
-		},
-	})
+	writeJSON(w, http.StatusOK, reviews)
 }
 
 func (h *ReviewHandler) GetReview(w http.ResponseWriter, r *http.Request) {

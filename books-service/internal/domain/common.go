@@ -48,3 +48,8 @@ func NewPagination(page, limit, total int) Pagination {
 		TotalPages: (total + limit - 1) / limit,
 	}
 }
+
+type UserSummary struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}

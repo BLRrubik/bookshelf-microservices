@@ -34,14 +34,15 @@ func (r *Review) ToResponse() ReviewResponse {
 }
 
 type ReviewResponse struct {
-	ID        string    `json:"id"`
-	BookID    string    `json:"book_id"`
-	UserID    string    `json:"user_id"`
-	Rating    int       `json:"rating"`
-	Title     *string   `json:"title"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID        string      `json:"id"`
+	BookID    string      `json:"book_id"`
+	UserID    string      `json:"user_id"`
+	Rating    int         `json:"rating"`
+	Title     *string     `json:"title"`
+	Content   string      `json:"content"`
+	CreatedAt time.Time   `json:"created_at"`
+	UpdatedAt time.Time   `json:"updated_at"`
+	User      UserSummary `json:"user"`
 }
 
 type CreateReviewRequest struct {

@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bookshelf/books-service/internal/client"
 	"bookshelf/books-service/internal/domain"
 	"bookshelf/books-service/internal/repository"
 	"bookshelf/books-service/internal/utils"
@@ -19,15 +20,18 @@ var (
 type ReviewService struct {
 	reviewRepo *repository.ReviewRepository
 	bookRepo   *repository.BookRepository
+	authClient *client.AuthClient
 }
 
 func NewReviewService(
 	reviewRepo *repository.ReviewRepository,
 	bookRepo *repository.BookRepository,
+	authClient *client.AuthClient,
 ) *ReviewService {
 	return &ReviewService{
 		reviewRepo: reviewRepo,
 		bookRepo:   bookRepo,
+		authClient: authClient,
 	}
 }
 
@@ -93,17 +97,51 @@ func (s *ReviewService) GetByID(ctx context.Context, id string) (*domain.Review,
 	return review, nil
 }
 
-func (s *ReviewService) ListByBook(ctx context.Context, bookID string, page, limit int) ([]domain.Review, int, error) {
+func (s *ReviewService) ListByBook(ctx context.Context, bookID string, page, limit int) (*domain.ReviewListResponse, error) {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
 		if errors.Is(err, repository.ErrBookNotFound) {
-			return nil, 0, ErrBookNotFound
+			return nil, ErrBookNotFound
 		}
 
-		return nil, 0, err
+		return nil, err
 	}
 
-	return s.reviewRepo.ListByBookID(ctx, book.ID, page, limit)
+	reviews, count, err := s.reviewRepo.ListByBookID(ctx, book.ID, page, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]string, len(reviews))
+	for i, review := range reviews {
+		users[i] = review.UserID
+	}
+
+	usersMap := make(map[string]client.UserPublic, len(users))
+	usersSummary, err := s.authClient.GetUsersByIDs(ctx, users)
+	for _, user := range usersSummary {
+		usersMap[user.ID] = user
+	}
+
+	reviewsResp := make([]domain.ReviewResponse, len(reviews))
+	for i, review := range reviews {
+		reviewsResp[i] = review.ToResponse()
+		userInfo := usersMap[review.UserID]
+		reviewsResp[i].User = domain.UserSummary{
+			ID:       userInfo.ID,
+			Username: userInfo.Username,
+		}
+	}
+
+	return &domain.ReviewListResponse{
+		Data: reviewsResp,
+		Pagination: domain.Pagination{
+			Page:       page,
+			Limit:      limit,
+			Total:      count,
+			TotalPages: (count + limit - 1) / limit,
+		},
+	}, nil
 }
 
 func (s *ReviewService) Update(
