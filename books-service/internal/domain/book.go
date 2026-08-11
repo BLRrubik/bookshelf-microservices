@@ -19,6 +19,9 @@ type Book struct {
 	PublishedYear sql.NullInt32   `json:"published_year" db:"published_year"`
 	AverageRating sql.NullFloat64 `json:"-" db:"average_rating"`
 	ReviewsCount  int             `json:"reviews_count" db:"reviews_count"`
+	CoverStatus   CoverStatus     `json:"cover_status" db:"cover_status"`
+	CoverURL      string          `json:"cover_url,omitempty" db:"cover_url"`
+	ThumbURL      string          `json:"thumb_url,omitempty" db:"thumb_url"`
 }
 
 func (b *Book) ToResponse() BookResponse {
