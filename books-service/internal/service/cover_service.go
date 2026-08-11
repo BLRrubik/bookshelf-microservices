@@ -39,8 +39,8 @@ func (s *CoverService) UploadCover(
 	userID string,
 	bookID string,
 	file io.Reader,
+	fileSize int64,
 	filename string,
-	size int64,
 ) (*domain.CoverUploadResponse, error) {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
@@ -51,7 +51,7 @@ func (s *CoverService) UploadCover(
 		return nil, fmt.Errorf("%w: invalid user id", ErrForbidden)
 	}
 
-	if err = validateImageFile(filename, size); err != nil {
+	if err = validateImageFile(filename, fileSize); err != nil {
 		return nil, err
 	}
 
@@ -66,7 +66,7 @@ func (s *CoverService) UploadCover(
 
 	filepath := fmt.Sprintf("covers/%s/original.%s", book.ID, ext)
 
-	if err = s.minioClient.UploadFile(ctx, filepath, file, size, client.GetContentType(filename)); err != nil {
+	if err = s.minioClient.UploadFile(ctx, filepath, file, fileSize, client.GetContentType(filename)); err != nil {
 		return nil, err
 	}
 
@@ -109,7 +109,7 @@ func validateImageFile(filename string, size int64) error {
 		return errors.New("empty filename")
 	}
 
-	if size <= 0 || size > 1<<20 {
+	if size <= 0 || size > 5*(1<<20) {
 		return errors.New("file size too big")
 	}
 
