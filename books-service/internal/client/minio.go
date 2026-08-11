@@ -3,6 +3,8 @@ package client
 import (
 	"context"
 	"fmt"
+	"io"
+	"strings"
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
@@ -75,4 +77,79 @@ func (c *MinIOClient) HealthCheck(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (c *MinIOClient) UploadFile(
+	ctx context.Context,
+	objectName string,
+	reader io.Reader,
+	size int64,
+	contentType string,
+) error {
+	if size < 0 {
+		return fmt.Errorf("object size must be known")
+	}
+
+	_, err := c.client.PutObject(
+		ctx,
+		c.bucket,
+		objectName,
+		reader,
+		size,
+		minio.PutObjectOptions{ContentType: contentType},
+	)
+	if err != nil {
+		return fmt.Errorf("put object %q: %w", objectName, err)
+	}
+	return nil
+}
+
+func (c *MinIOClient) GetFileURL(objectName string) string {
+	object, err := c.client.GetObject(
+		context.Background(),
+		c.bucket,
+		objectName,
+		minio.GetObjectOptions{},
+	)
+	if err != nil {
+		return ""
+	}
+
+	info, err := object.Stat()
+	if err != nil {
+		return ""
+	}
+
+	return info.Key
+}
+
+func (c *MinIOClient) DeleteFile(ctx context.Context, objectName string) error {
+	err := c.client.RemoveObject(
+		ctx,
+		c.bucket,
+		objectName,
+		minio.RemoveObjectOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf("remove object %q: %w", objectName, err)
+	}
+
+	return nil
+}
+
+func GetContentType(filename string) string {
+	splitted := strings.Split(filename, ".")
+
+	switch strings.ToLower(splitted[len(splitted)-1]) {
+	case "jpg", "jpeg":
+		return "image/jpeg"
+	case "png":
+		return "image/png"
+	case "gif":
+		return "image/gif"
+	case "webp":
+		return "image/webp"
+	default:
+		return "application/octet-stream"
+	}
 }
