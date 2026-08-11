@@ -42,6 +42,11 @@ func (c *MinIOClient) EnsureBucket(ctx context.Context) error {
 	); err != nil {
 		return fmt.Errorf("create bucket %q: %w", c.bucket, err)
 	}
+
+	if err = c.client.SetBucketPolicy(ctx, c.bucket, "public"); err != nil {
+		return fmt.Errorf("set bucket policy: %w", err)
+	}
+
 	return nil
 }
 
