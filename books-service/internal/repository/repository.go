@@ -18,11 +18,13 @@ var (
 type Repository struct {
 	BookRepository   *BookRepository
 	ReviewRepository *ReviewRepository
+	CoverRepository  *CoverRepository
 }
 
 func New(db *sqlx.DB) *Repository {
 	return &Repository{
 		BookRepository:   NewBookRepository(db),
 		ReviewRepository: NewReviewRepository(db),
+		CoverRepository:  NewCoverRepository(db),
 	}
 }
