@@ -3,10 +3,16 @@ package config
 import "os"
 
 type Config struct {
-	Port           string
-	DatabaseURL    string
-	AuthServiceURL string
-	ServiceKey     string
+	Port                string
+	DatabaseURL         string
+	AuthServiceURL      string
+	ServiceKey          string
+	MinIOEndpoint       string // localhost:9000
+	MinIOAccessKey      string
+	MinIOSecretKey      string
+	MinioBucket         string // bookshelf-covers
+	MinIOPublicEndpoint string // http://localhost:9000
+	MinIOUseSSL         bool   // false для локальной разработки
 }
 
 func Load() *Config {
@@ -37,5 +43,25 @@ func normalizeConfig(cfg *Config) {
 
 	if cfg.ServiceKey == "" {
 		cfg.ServiceKey = "serviceKey"
+	}
+
+	if cfg.MinIOEndpoint == "" {
+		cfg.MinIOEndpoint = "amqp://guest:guest@localhost:5672/"
+	}
+
+	if cfg.MinIOPublicEndpoint == "" {
+		cfg.MinIOPublicEndpoint = "amqp://guest:guest@localhost:5672/"
+	}
+
+	if cfg.MinioBucket == "" {
+		cfg.MinioBucket = "bookshelf-covers"
+	}
+
+	if cfg.MinIOAccessKey == "" {
+		cfg.MinIOAccessKey = "minioadmin"
+	}
+
+	if cfg.MinIOSecretKey == "" {
+		cfg.MinIOSecretKey = "minioadmin"
 	}
 }

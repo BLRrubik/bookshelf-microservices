@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bookshelf/worker-service/internal/client"
 	"bookshelf/worker-service/internal/config"
 	"bookshelf/worker-service/internal/queue"
 	"fmt"
@@ -30,20 +29,6 @@ func main() {
 	})
 
 	consumer.Start()
-
-	minioClient, err := client.NewMinIOClient(
-		cfg.MinIOEndpoint,
-		cfg.MinIOAccessKey,
-		cfg.MinIOSecretKey,
-		cfg.MinioBucket,
-		cfg.MinIOPublicEndpoint,
-		cfg.MinIOUseSSL,
-	)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	_ = minioClient
 
 	term := make(chan os.Signal, 1)
 

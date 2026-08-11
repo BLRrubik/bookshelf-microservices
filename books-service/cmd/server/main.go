@@ -36,6 +36,20 @@ func main() {
 	}
 	defer rabbitMQClient.Close()
 
+	minioClient, err := client.NewMinIOClient(
+		cfg.MinIOEndpoint,
+		cfg.MinIOAccessKey,
+		cfg.MinIOSecretKey,
+		cfg.MinioBucket,
+		cfg.MinIOPublicEndpoint,
+		cfg.MinIOUseSSL,
+	)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_ = minioClient
+
 	authClient := client.NewAuthClient(
 		"http://localhost:8081",
 		time.Second*5,
