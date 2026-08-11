@@ -39,7 +39,11 @@ func NewMinIOClient(endpoint, accessKey, secretKey, bucket, publicEndpoint strin
 		return nil, fmt.Errorf("create MinIO client: %w", err)
 	}
 
-	return &MinIOClient{client: client, bucket: bucket}, nil
+	return &MinIOClient{
+		client:         client,
+		bucket:         bucket,
+		publicEndpoint: publicEndpoint,
+	}, nil
 }
 
 func (c *MinIOClient) EnsureBucket(ctx context.Context) error {
