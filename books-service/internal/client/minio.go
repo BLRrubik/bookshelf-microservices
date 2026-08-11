@@ -105,22 +105,7 @@ func (c *MinIOClient) UploadFile(
 }
 
 func (c *MinIOClient) GetFileURL(objectName string) string {
-	object, err := c.client.GetObject(
-		context.Background(),
-		c.bucket,
-		objectName,
-		minio.GetObjectOptions{},
-	)
-	if err != nil {
-		return ""
-	}
-
-	info, err := object.Stat()
-	if err != nil {
-		return ""
-	}
-
-	return info.Key
+	return fmt.Sprintf("%s/%s/%s", c.publicEndpoint, c.bucket, objectName)
 }
 
 func (c *MinIOClient) DeleteFile(ctx context.Context, objectName string) error {
