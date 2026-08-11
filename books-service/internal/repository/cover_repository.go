@@ -28,7 +28,7 @@ UPDATE covers SET status = $1, cover_path = $2, thumb_path = $3, error = $4 WHER
 UPDATE covers SET status = $1, cover_path = $2, thumb_path = $3, error = $4, completed_at = NOW() WHERE id = $5;
 `
 	updateBookCoverQuery = `
-UPDATE books SET cover_status = $2, cover_url = $3, thumb_url = $4 WHERE id = $1;
+UPDATE books SET cover_status = $2, cover_url = $3, thumbnail_url = $4 WHERE id = $1;
 `
 	deleteCoverByBookIdQuery = `
 DELETE FROM covers WHERE book_id = $1;
