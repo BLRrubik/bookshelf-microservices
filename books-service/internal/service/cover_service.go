@@ -44,7 +44,7 @@ func (s *CoverService) UploadCover(
 ) (*domain.CoverUploadResponse, error) {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
-		return nil, err
+		return nil, ErrBookNotFound
 	}
 
 	if book.UserID != userID {

@@ -16,6 +16,7 @@ type Handler struct {
 	bookHandler   *BookHandler
 	reviewHandler *ReviewHandler
 	healthHandler *HealthHandler
+	coverHandler  *CoverHandler
 	authClient    *client.AuthClient
 }
 
@@ -29,6 +30,7 @@ func NewHandler(
 		bookHandler:   NewBookHandler(service.BookService),
 		reviewHandler: NewReviewHandler(service.ReviewService),
 		healthHandler: NewHealthHandler(db, authClient, rabbitMQClient),
+		coverHandler:  NewCoverHandler(service.CoverService),
 		authClient:    authClient,
 	}
 }
@@ -54,6 +56,8 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Post("/books", h.bookHandler.Create)
 			r.Put("/books/{id}", h.bookHandler.Update)
 			r.Delete("/books/{id}", h.bookHandler.Delete)
+
+			r.Post("/api/v1/books/{id}/cover", h.coverHandler.UploadBookCover)
 		})
 
 	})

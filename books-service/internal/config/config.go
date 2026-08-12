@@ -46,11 +46,11 @@ func normalizeConfig(cfg *Config) {
 	}
 
 	if cfg.MinIOEndpoint == "" {
-		cfg.MinIOEndpoint = "amqp://guest:guest@localhost:5672/"
+		cfg.MinIOEndpoint = "localhost:9000"
 	}
 
 	if cfg.MinIOPublicEndpoint == "" {
-		cfg.MinIOPublicEndpoint = "amqp://guest:guest@localhost:5672/"
+		cfg.MinIOPublicEndpoint = "http://localhost:9000"
 	}
 
 	if cfg.MinioBucket == "" {
