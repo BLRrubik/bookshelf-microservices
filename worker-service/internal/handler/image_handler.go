@@ -73,10 +73,10 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 }
 
 func (h *ImageHandler) processImage(ctx context.Context, img image.Image, width, height, quality int, objectName string) error {
-	data := imaging.Fill(img, ThumbWidth, ThumbHeight, imaging.Center, imaging.Lanczos)
+	data := imaging.Fill(img, width, height, imaging.Center, imaging.Lanczos)
 
 	var buf bytes.Buffer
-	if err := imaging.Encode(&buf, data, imaging.JPEG, imaging.JPEGQuality(JPEGQuality)); err != nil {
+	if err := imaging.Encode(&buf, data, imaging.JPEG, imaging.JPEGQuality(quality)); err != nil {
 		slog.Error("Failed to encode image", zap.Error(err))
 
 		return err
