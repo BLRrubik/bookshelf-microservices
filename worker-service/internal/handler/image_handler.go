@@ -2,6 +2,7 @@ package handler
 
 import (
 	"bookshelf/worker-service/internal/queue"
+	"bookshelf/worker-service/internal/repository"
 	"bookshelf/worker-service/internal/storage"
 	"bytes"
 	"context"
@@ -11,7 +12,6 @@ import (
 	"log/slog"
 
 	"github.com/disintegration/imaging"
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -31,7 +31,14 @@ type ImageCompressMessage struct {
 
 type ImageHandler struct {
 	storage *storage.MinIOStorage
-	db      *sqlx.DB
+	repo    *repository.CoverRepository
+}
+
+func NewImageHandler(storage *storage.MinIOStorage, repo *repository.CoverRepository) *ImageHandler {
+	return &ImageHandler{
+		storage: storage,
+		repo:    repo,
+	}
 }
 
 func (h *ImageHandler) HandleImageCompress(body []byte) error {
@@ -53,20 +60,39 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 	img, err := imaging.Decode(bytes.NewReader(fileBytes))
 	if err != nil {
 		slog.Error("Failed to decode image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		if err = h.repo.UpdateStatus(ctx, msg.CoverID, "failed", "", "", err.Error()); err != nil {
+			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		}
 
 		return err
 	}
 
-	if err = h.processImage(ctx, img, CoverWidth, CoverHeight, JPEGQuality, fmt.Sprintf("/covers/%s/cover.jpg", msg.BookID)); err != nil {
+	coverULR := fmt.Sprintf("/covers/%s/cover.jpg", msg.BookID)
+	if err = h.processImage(ctx, img, CoverWidth, CoverHeight, JPEGQuality, coverULR); err != nil {
 		slog.Error("Failed to process image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		if err = h.repo.UpdateStatus(ctx, msg.CoverID, "failed", "", "", err.Error()); err != nil {
+			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		}
 
 		return err
 	}
 
-	if err = h.processImage(ctx, img, ThumbWidth, ThumbHeight, JPEGQuality, fmt.Sprintf("/covers/%s/thumb.jpg", msg.BookID)); err != nil {
+	thumbURL := fmt.Sprintf("/covers/%s/thumb.jpg", msg.BookID)
+	if err = h.processImage(ctx, img, ThumbWidth, ThumbHeight, JPEGQuality, thumbURL); err != nil {
 		slog.Error("Failed to process image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		if err = h.repo.UpdateStatus(ctx, msg.CoverID, "failed", "", "", err.Error()); err != nil {
+			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		}
 
 		return err
+	}
+
+	if err = h.repo.UpdateStatus(ctx, msg.CoverID, "ready", "", "", err.Error()); err != nil {
+		slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+	}
+
+	if err = h.repo.UpdateBookCover(ctx, msg.BookID, "done", coverULR, thumbURL); err != nil {
+		slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 	}
 
 	return nil
