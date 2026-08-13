@@ -60,7 +60,7 @@ func main() {
 
 	repos := repository.New(db)
 	services := service.New(repos, authClient, minioClient, rabbitMQClient)
-	handlers := handler.NewHandler(services, db, authClient, rabbitMQClient)
+	handlers := handler.NewHandler(services, db, authClient, rabbitMQClient, minioClient)
 
 	r := chi.NewRouter()
 

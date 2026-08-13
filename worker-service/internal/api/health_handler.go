@@ -1,8 +1,10 @@
-package handler
+package api
 
 import (
-	"bookshelf/books-service/internal/client"
+	"bookshelf/worker-service/internal/queue"
+	"bookshelf/worker-service/internal/storage"
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 
@@ -32,20 +34,17 @@ type Check struct {
 
 type HealthHandler struct {
 	db             *sqlx.DB
-	authClient     *client.AuthClient
-	rabbitMQClient *client.RabbitMQClient
-	minioClient    *client.MinIOClient
+	rabbitMQClient *queue.Consumer
+	minioClient    *storage.MinIOStorage
 }
 
 func NewHealthHandler(
 	db *sqlx.DB,
-	authClient *client.AuthClient,
-	rabbitMQClient *client.RabbitMQClient,
-	minioClient *client.MinIOClient,
+	rabbitMQClient *queue.Consumer,
+	minioClient *storage.MinIOStorage,
 ) *HealthHandler {
 	return &HealthHandler{
 		db:             db,
-		authClient:     authClient,
 		rabbitMQClient: rabbitMQClient,
 		minioClient:    minioClient,
 	}
@@ -89,7 +88,6 @@ func (h *HealthHandler) Ready(w http.ResponseWriter, r *http.Request) {
 
 	resp.Checks["database"] = h.checkDatabase(r.Context())
 	resp.Checks["rabbitMQ"] = h.checkRabbitMQ(r.Context())
-	resp.Checks["auth-service"] = h.checkAuthService(r.Context())
 	resp.Checks["minio"] = h.checkMinio(r.Context())
 
 	for _, v := range resp.Checks {
@@ -160,27 +158,15 @@ func (h *HealthHandler) checkMinio(ctx context.Context) Check {
 	return check
 }
 
-func (h *HealthHandler) checkAuthService(ctx context.Context) Check {
-	pingCtx, cancel := context.WithTimeout(ctx, 2*time.Second)
-	defer cancel()
+func writeJSON(w http.ResponseWriter, status int, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
 
-	now := time.Now()
-	resp, err := h.authClient.Health(pingCtx)
-	after := time.Since(now)
-
-	check := Check{
-		Status:   "ok",
-		Duration: after.String(),
+		return
 	}
 
-	switch {
-	case err != nil:
-		check.Error = err.Error()
-		check.Status = "error"
-	case resp.Status != "ok":
-		check.Status = "error"
-		check.Error = "service is not healthy"
-	}
-
-	return check
+	_, _ = w.Write(bytes)
 }

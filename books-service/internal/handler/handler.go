@@ -25,11 +25,12 @@ func NewHandler(
 	db *sqlx.DB,
 	authClient *client.AuthClient,
 	rabbitMQClient *client.RabbitMQClient,
+	minioClient *client.MinIOClient,
 ) *Handler {
 	return &Handler{
 		bookHandler:   NewBookHandler(service.BookService),
 		reviewHandler: NewReviewHandler(service.ReviewService),
-		healthHandler: NewHealthHandler(db, authClient, rabbitMQClient),
+		healthHandler: NewHealthHandler(db, authClient, rabbitMQClient, minioClient),
 		coverHandler:  NewCoverHandler(service.CoverService),
 		authClient:    authClient,
 	}

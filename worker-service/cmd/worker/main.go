@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bookshelf/worker-service/internal/api"
 	"bookshelf/worker-service/internal/config"
 	"bookshelf/worker-service/internal/handler"
 	"bookshelf/worker-service/internal/queue"
@@ -8,9 +9,14 @@ import (
 	"bookshelf/worker-service/internal/storage"
 	"log"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/signal"
+	"time"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
@@ -54,6 +60,39 @@ func main() {
 	})
 
 	consumer.Start()
+
+	r := chi.NewRouter()
+
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(middleware.RequestID)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://localhost:5175", "http://localhost:3003"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
+		ExposedHeaders:   []string{"Link"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+
+	httpHandler := api.NewHealthHandler(db, consumer, minioStorage)
+
+	r.Get("/health", httpHandler.Health)
+	r.Get("/ready", httpHandler.Ready)
+
+	server := &http.Server{
+		ReadTimeout:  5 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  120 * time.Second,
+		Addr:         cfg.Port,
+		Handler:      r,
+	}
+
+	go func() {
+		if err = server.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
+	}()
 
 	term := make(chan os.Signal, 1)
 

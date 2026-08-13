@@ -97,3 +97,15 @@ func (c *Consumer) Close() error {
 
 	return c.conn.Close()
 }
+
+func (c *Consumer) HealthCheck() error {
+	if c.channel.IsClosed() {
+		return errors.New("channel is closed")
+	}
+
+	if c.conn.IsClosed() {
+		return errors.New("connection is closed")
+	}
+
+	return nil
+}
