@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"image/jpeg"
 	"log/slog"
 
 	"github.com/disintegration/imaging"
@@ -77,7 +76,7 @@ func (h *ImageHandler) processImage(ctx context.Context, img image.Image, width,
 	data := imaging.Fill(img, ThumbWidth, ThumbHeight, imaging.Center, imaging.Lanczos)
 
 	var buf bytes.Buffer
-	if err := jpeg.Encode(&buf, data, &jpeg.Options{Quality: JPEGQuality}); err != nil {
+	if err := imaging.Encode(&buf, data, imaging.JPEG, imaging.JPEGQuality(JPEGQuality)); err != nil {
 		slog.Error("Failed to encode image", zap.Error(err))
 
 		return err
