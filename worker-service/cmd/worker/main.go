@@ -59,7 +59,7 @@ func main() {
 
 	imageHandler := handler.NewImageHandler(minioStorage, repo)
 
-	consumer.RegisterHandler("test_queue", func(body []byte) error {
+	consumer.RegisterHandler("image_compress", func(body []byte) error {
 		return imageHandler.HandleImageCompress(body)
 	})
 

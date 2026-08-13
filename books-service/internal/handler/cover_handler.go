@@ -99,8 +99,10 @@ func (h *CoverHandler) DeleteBookCover(w http.ResponseWriter, r *http.Request) {
 	bookID := chi.URLParam(r, "id")
 	userID := getUserID(r.Context())
 
-	if err := h.svc.DeleteCover(r.Context(), bookID, userID); err != nil {
+	if err := h.svc.DeleteCover(r.Context(), userID, bookID); err != nil {
 		switch {
+		case errors.Is(err, service.ErrBookNotFound):
+			writeError(w, r, http.StatusNotFound, "book not found")
 		case errors.Is(err, service.ErrCoverNotFound):
 			writeError(w, r, http.StatusNotFound, "cover not found")
 		case errors.Is(err, service.ErrForbidden):

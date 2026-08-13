@@ -114,6 +114,8 @@ func (h *BookHandler) Update(w http.ResponseWriter, r *http.Request) {
 		default:
 			writeError(w, r, http.StatusInternalServerError, err.Error())
 		}
+
+		return
 	}
 
 	writeJSON(w, http.StatusOK, book.ToResponse())

@@ -54,14 +54,14 @@ func (c *Config) normalize() {
 	}
 
 	if c.MinIOAccess == "" {
-		c.MinIOAccess = "read"
+		c.MinIOAccess = "minioadmin"
 	}
 
 	if c.MinIOSecret == "" {
-		c.MinIOSecret = "secret"
+		c.MinIOSecret = "minioadmin"
 	}
 
 	if c.DatabaseURL == "" {
-		c.DatabaseURL = os.Getenv("DATABASE_URL")
+		c.DatabaseURL = "postgres://postgres:postgres@localhost:5433/books?sslmode=disable"
 	}
 }

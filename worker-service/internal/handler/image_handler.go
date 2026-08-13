@@ -67,8 +67,8 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 		return nil
 	}
 
-	coverULR := fmt.Sprintf("/covers/%s/cover.jpg", msg.BookID)
-	if err = h.processImage(ctx, img, CoverWidth, CoverHeight, JPEGQuality, coverULR); err != nil {
+	coverKey := fmt.Sprintf("covers/%s/cover.jpg", msg.BookID)
+	if err = h.processImage(ctx, img, CoverWidth, CoverHeight, JPEGQuality, coverKey); err != nil {
 		slog.Error("Failed to process image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 		if err = h.repo.UpdateStatus(ctx, msg.CoverID, "failed", "", "", err.Error()); err != nil {
 			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
@@ -77,8 +77,8 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 		return nil
 	}
 
-	thumbURL := fmt.Sprintf("/covers/%s/thumb.jpg", msg.BookID)
-	if err = h.processImage(ctx, img, ThumbWidth, ThumbHeight, JPEGQuality, thumbURL); err != nil {
+	thumbKey := fmt.Sprintf("covers/%s/thumb.jpg", msg.BookID)
+	if err = h.processImage(ctx, img, ThumbWidth, ThumbHeight, JPEGQuality, thumbKey); err != nil {
 		slog.Error("Failed to process image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 		if err = h.repo.UpdateStatus(ctx, msg.CoverID, "failed", "", "", err.Error()); err != nil {
 			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
@@ -87,11 +87,24 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 		return nil
 	}
 
-	if err = h.repo.UpdateStatus(ctx, msg.CoverID, "ready", coverULR, thumbURL, ""); err != nil {
+	if err = h.repo.UpdateStatus(
+		ctx,
+		msg.CoverID,
+		"ready",
+		coverKey,
+		thumbKey,
+		"",
+	); err != nil {
 		slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 	}
 
-	if err = h.repo.UpdateBookCover(ctx, msg.BookID, "done", coverULR, thumbURL); err != nil {
+	if err = h.repo.UpdateBookCover(
+		ctx,
+		msg.BookID,
+		"ready",
+		h.storage.GetFileURL(coverKey),
+		h.storage.GetFileURL(thumbKey),
+	); err != nil {
 		slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 	}
 

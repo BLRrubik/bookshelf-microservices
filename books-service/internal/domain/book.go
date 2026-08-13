@@ -37,23 +37,29 @@ func (b *Book) ToResponse() BookResponse {
 		PublishedYear: utils.NullToInt32(b.PublishedYear),
 		AverageRating: utils.NullToFloat64(b.AverageRating),
 		ReviewsCount:  b.ReviewsCount,
+		CoverStatus:   b.CoverStatus,
+		CoverURL:      b.CoverURL,
+		ThumbURL:      b.ThumbURL,
 	}
 
 	return book
 }
 
 type BookResponse struct {
-	ID            string    `json:"id"`
-	Title         string    `json:"title"`
-	Author        string    `json:"author"`
-	UserID        string    `json:"user_id"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
-	Description   *string   `json:"description"`
-	ISBN          *string   `json:"isbn"`
-	PublishedYear *int32    `json:"published_year"`
-	AverageRating *float64  `json:"-"`
-	ReviewsCount  int       `json:"reviews_count"`
+	ID            string      `json:"id"`
+	Title         string      `json:"title"`
+	Author        string      `json:"author"`
+	UserID        string      `json:"created_by"`
+	CreatedAt     time.Time   `json:"created_at"`
+	UpdatedAt     time.Time   `json:"updated_at"`
+	Description   *string     `json:"description"`
+	ISBN          *string     `json:"isbn"`
+	PublishedYear *int32      `json:"published_year"`
+	AverageRating *float64    `json:"-"`
+	ReviewsCount  int         `json:"reviews_count"`
+	CoverStatus   CoverStatus `json:"cover_status"`
+	CoverURL      string      `json:"cover_url,omitempty"`
+	ThumbURL      string      `json:"thumb_url,omitempty"`
 }
 
 type CreateBookRequest struct {

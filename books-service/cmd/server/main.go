@@ -36,6 +36,10 @@ func main() {
 	}
 	defer rabbitMQClient.Close()
 
+	if err = rabbitMQClient.DeclareQueue(client.QueueImageCompress); err != nil {
+		log.Fatal(err)
+	}
+
 	minioClient, err := client.NewMinIOClient(
 		cfg.MinIOEndpoint,
 		cfg.MinIOAccessKey,

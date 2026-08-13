@@ -19,10 +19,11 @@ VALUES($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT DO NOTHING;
 `
 	getBookByIDQuery = `
-SELECT 
-	b.id, b.title, b.author, 
+SELECT
+	b.id, b.title, b.author,
 	b.description, b.isbn, b.published_year,
 	b.created_by, b.created_at, b.updated_at,
+	b.cover_status, COALESCE(b.cover_url, '') AS cover_url, COALESCE(b.thumbnail_url, '') AS thumb_url,
 	AVG(r.rating) as average_rating,
 	COUNT(r.id) as reviews_count
 FROM books AS b
@@ -31,10 +32,11 @@ WHERE b.id = $1
 GROUP BY b.id
 `
 	listBooksQuery = `
-SELECT 
-	b.id, b.title, b.author, 
+SELECT
+	b.id, b.title, b.author,
 	b.description, b.isbn, b.published_year,
 	b.created_by, b.created_at, b.updated_at,
+	b.cover_status, COALESCE(b.cover_url, '') AS cover_url, COALESCE(b.thumbnail_url, '') AS thumb_url,
 	AVG(r.rating) as average_rating,
 	COUNT(r.id) as reviews_count
 FROM books AS b
@@ -45,10 +47,11 @@ ORDER BY %s %s
 LIMIT $2 OFFSET $3
 `
 	listBooksByUserIDQuery = `
-SELECT 
-	b.id, b.title, b.author, 
+SELECT
+	b.id, b.title, b.author,
 	b.description, b.isbn, b.published_year,
 	b.created_by, b.created_at, b.updated_at,
+	b.cover_status, COALESCE(b.cover_url, '') AS cover_url, COALESCE(b.thumbnail_url, '') AS thumb_url,
 	AVG(r.rating) as average_rating,
 	COUNT(r.id) as reviews_count
 FROM books AS b
