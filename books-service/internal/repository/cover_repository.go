@@ -3,6 +3,8 @@ package repository
 import (
 	"bookshelf/books-service/internal/domain"
 	"context"
+	"database/sql"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -68,6 +70,9 @@ func (r *CoverRepository) GetByBookID(ctx context.Context, bookID string) (*doma
 	var cover domain.Cover
 
 	if err := r.db.GetContext(ctx, &cover, getCoverByBookIdQuery, bookID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrCoverNotFound
+		}
 		return nil, err
 	}
 

@@ -13,6 +13,7 @@ var (
 	ErrBookNotFound = errors.New("book not found")
 
 	ErrReviewNotFound = errors.New("review not found")
+	ErrCoverNotFound  = errors.New("cover not found")
 )
 
 type Repository struct {

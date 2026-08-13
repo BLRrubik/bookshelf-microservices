@@ -10,6 +10,7 @@ import (
 
 var (
 	ErrBookNotFound    = errors.New("book not found")
+	ErrCoverNotFound   = errors.New("cover not found")
 	ErrNotBookOwner    = errors.New("user is not the owner of the book")
 	ErrBookTitleEmpty  = errors.New("book title cannot be empty")
 	ErrBookAuthorEmpty = errors.New("book author cannot be empty")

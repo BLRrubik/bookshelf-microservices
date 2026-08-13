@@ -115,3 +115,57 @@ func validateImageFile(filename string, size int64) error {
 
 	return nil
 }
+
+func (s *CoverService) GetCover(ctx context.Context, bookID string) (*domain.CoverResponse, error) {
+	cover, err := s.coverRepo.GetByBookID(ctx, bookID)
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrCoverNotFound):
+			return nil, ErrBookNotFound
+		}
+
+		return nil, err
+	}
+
+	return &domain.CoverResponse{
+		Status:   cover.Status,
+		CoverURL: cover.CoverURL,
+		ThumbURL: cover.ThumbURL,
+		Message:  cover.Error,
+	}, nil
+}
+
+func (s *CoverService) GetCoverStatus(ctx context.Context, bookID string) (*domain.CoverStatusResponse, error) {
+	cover, err := s.coverRepo.GetByBookID(ctx, bookID)
+	if err != nil {
+		switch {
+		case errors.Is(err, repository.ErrCoverNotFound):
+			return nil, ErrBookNotFound
+		}
+
+		return nil, err
+	}
+
+	return &domain.CoverStatusResponse{
+		CoverID:     cover.ID,
+		Status:      cover.Status,
+		CoverURL:    cover.CoverURL,
+		ThumbURL:    cover.ThumbURL,
+		Error:       cover.Error,
+		CreatedAt:   cover.CreatedAt,
+		CompletedAt: cover.CompletedAt,
+	}, nil
+}
+
+func (s *CoverService) DeleteCover(ctx context.Context, userID, bookID string) error {
+	book, err := s.bookRepo.GetByID(ctx, bookID)
+	if err != nil {
+		return err
+	}
+
+	if book.UserID != userID {
+		return fmt.Errorf("%w: invalid user id", ErrForbidden)
+	}
+
+	return s.coverRepo.DeleteByBookID(ctx, bookID)
+}
