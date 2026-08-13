@@ -7,11 +7,13 @@ import (
 	"bookshelf/worker-service/internal/queue"
 	"bookshelf/worker-service/internal/repository"
 	"bookshelf/worker-service/internal/storage"
+	"context"
 	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -23,6 +25,8 @@ import (
 
 func main() {
 	slog.Info("worker-service starting...")
+
+	ctx, cancel := context.WithCancel(context.Background())
 
 	slog.Info("Loading configuration...")
 	cfg := config.Load()
@@ -59,7 +63,9 @@ func main() {
 		return imageHandler.HandleImageCompress(body)
 	})
 
-	consumer.Start()
+	if err = consumer.Start(ctx); err != nil {
+		log.Fatal(err)
+	}
 
 	r := chi.NewRouter()
 
@@ -96,7 +102,16 @@ func main() {
 
 	term := make(chan os.Signal, 1)
 
-	signal.Notify(term, os.Interrupt)
+	signal.Notify(term, os.Interrupt, syscall.SIGTERM)
 
 	<-term
+
+	cancel()
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer shutdownCancel()
+
+	if err = server.Shutdown(shutdownCtx); err != nil {
+		log.Printf("shutdown error: %v", err)
+	}
 }

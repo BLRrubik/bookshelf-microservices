@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 )
 
 var ErrTemporary = errors.New("temporary error")
@@ -41,7 +42,7 @@ func (c *Consumer) RegisterHandler(queue string, handler HandlerFunc) {
 	c.handlers[queue] = handler
 }
 
-func (c *Consumer) Start() error {
+func (c *Consumer) Start(ctx context.Context) error {
 	for queue, handler := range c.handlers {
 		if err := c.channel.Qos(1, 0, false); err != nil {
 			return err
@@ -61,31 +62,43 @@ func (c *Consumer) Start() error {
 			return err
 		}
 
-		go c.consume(queue, handler, deliveries)
+		go c.consume(ctx, queue, handler, deliveries)
 	}
 
 	return nil
 }
 
-func (c *Consumer) consume(queue string, handler HandlerFunc, msgs <-chan amqp.Delivery) {
-	for msg := range msgs {
-		if err := handler(msg.Body); err != nil {
-			var requeue bool
-			if errors.Is(err, ErrTemporary) {
-				requeue = true
-			}
+func (c *Consumer) consume(ctx context.Context, queue string, handler HandlerFunc, msgs <-chan amqp.Delivery) {
 
-			if err = msg.Nack(false, requeue); err != nil {
-				slog.Error("Failed to nack message from queue %s: %s", queue, err)
-			}
-
-			continue
-		}
-
-		if err := msg.Ack(false); err != nil {
-			slog.Error(fmt.Sprintf("Failed to ack message from queue %s: %s", queue, err))
+	select {
+	case <-ctx.Done():
+		return
+	case msg := <-msgs:
+		if err := c.processMessage(queue, handler, msg); err != nil {
+			slog.Error("Error processing message", zap.Error(err))
 		}
 	}
+}
+
+func (c *Consumer) processMessage(queue string, handler HandlerFunc, msg amqp.Delivery) error {
+	if err := handler(msg.Body); err != nil {
+		var requeue bool
+		if errors.Is(err, ErrTemporary) {
+			requeue = true
+		}
+
+		if err = msg.Nack(false, requeue); err != nil {
+			slog.Error("Failed to nack message from queue %s: %s", queue, err)
+		}
+
+		return err
+	}
+
+	if err := msg.Ack(false); err != nil {
+		slog.Error(fmt.Sprintf("Failed to ack message from queue %s: %s", queue, err))
+	}
+
+	return nil
 }
 
 func (c *Consumer) Close() error {
