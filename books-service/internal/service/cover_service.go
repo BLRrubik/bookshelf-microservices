@@ -183,7 +183,7 @@ func (s *CoverService) DeleteCover(ctx context.Context, userID, bookID string) e
 		return err
 	}
 
-	files := []string{cover.OriginalPath, cover.ThumbPath, cover.ThumbPath}
+	files := []string{cover.OriginalPath, cover.CoverPath, cover.ThumbPath}
 	for _, file := range files {
 		if err = s.minioClient.DeleteFile(ctx, file); err != nil {
 			return err
