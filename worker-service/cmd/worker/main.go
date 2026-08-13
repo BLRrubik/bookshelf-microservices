@@ -111,6 +111,12 @@ func main() {
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
 
+	if err = consumer.Wait(shutdownCtx); err != nil {
+		log.Printf("consumer shutdown wait error: %v", err)
+	}
+
+	consumer.Close()
+
 	if err = server.Shutdown(shutdownCtx); err != nil {
 		log.Printf("shutdown error: %v", err)
 	}

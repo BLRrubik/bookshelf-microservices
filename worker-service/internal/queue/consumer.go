@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"go.uber.org/zap"
@@ -18,6 +19,7 @@ type Consumer struct {
 	conn     *amqp.Connection
 	channel  *amqp.Channel
 	handlers map[string]HandlerFunc
+	wg       sync.WaitGroup
 }
 
 func NewConsumer(url string) (*Consumer, error) {
@@ -49,7 +51,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 		}
 
 		deliveries, err := c.channel.ConsumeWithContext(
-			context.Background(),
+			ctx,
 			queue,
 			"",
 			false,
@@ -62,6 +64,7 @@ func (c *Consumer) Start(ctx context.Context) error {
 			return err
 		}
 
+		c.wg.Add(1)
 		go c.consume(ctx, queue, handler, deliveries)
 	}
 
@@ -69,14 +72,37 @@ func (c *Consumer) Start(ctx context.Context) error {
 }
 
 func (c *Consumer) consume(ctx context.Context, queue string, handler HandlerFunc, msgs <-chan amqp.Delivery) {
+	defer c.wg.Done()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case msg, ok := <-msgs:
+			if !ok {
+				return
+			}
+
+			if err := c.processMessage(queue, handler, msg); err != nil {
+				slog.Error("Error processing message", zap.Error(err))
+			}
+		}
+	}
+}
+
+func (c *Consumer) Wait(ctx context.Context) error {
+	done := make(chan struct{})
+
+	go func() {
+		c.wg.Wait()
+		close(done)
+	}()
 
 	select {
+	case <-done:
+		return nil
 	case <-ctx.Done():
-		return
-	case msg := <-msgs:
-		if err := c.processMessage(queue, handler, msg); err != nil {
-			slog.Error("Error processing message", zap.Error(err))
-		}
+		return ctx.Err()
 	}
 }
 
