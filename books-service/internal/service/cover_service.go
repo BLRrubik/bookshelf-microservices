@@ -121,18 +121,27 @@ func (s *CoverService) GetCover(ctx context.Context, bookID string) (*domain.Cov
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrCoverNotFound):
-			return nil, ErrBookNotFound
+			return &domain.CoverResponse{
+				Status:  domain.CoverStatusNone,
+				Message: "No cover",
+			}, nil
 		}
 
 		return nil, err
 	}
 
-	return &domain.CoverResponse{
+	resp := &domain.CoverResponse{
 		Status:   cover.Status,
 		CoverURL: cover.CoverURL,
 		ThumbURL: cover.ThumbURL,
 		Message:  cover.Error,
-	}, nil
+	}
+
+	if cover.Status == domain.CoverStatusProcessing {
+		resp.Message = "Cover is being processed. Please wait."
+	}
+
+	return resp, nil
 }
 
 func (s *CoverService) GetCoverStatus(ctx context.Context, bookID string) (*domain.CoverStatusResponse, error) {
@@ -140,7 +149,9 @@ func (s *CoverService) GetCoverStatus(ctx context.Context, bookID string) (*doma
 	if err != nil {
 		switch {
 		case errors.Is(err, repository.ErrCoverNotFound):
-			return nil, ErrBookNotFound
+			return &domain.CoverStatusResponse{
+				Status: domain.CoverStatusNone,
+			}, nil
 		}
 
 		return nil, err
@@ -149,8 +160,8 @@ func (s *CoverService) GetCoverStatus(ctx context.Context, bookID string) (*doma
 	return &domain.CoverStatusResponse{
 		CoverID:     cover.ID,
 		Status:      cover.Status,
-		CoverURL:    cover.CoverURL,
-		ThumbURL:    cover.ThumbURL,
+		CoverURL:    cover.CoverPath,
+		ThumbURL:    cover.ThumbPath,
 		Error:       cover.Error,
 		CreatedAt:   cover.CreatedAt,
 		CompletedAt: cover.CompletedAt,
@@ -167,5 +178,21 @@ func (s *CoverService) DeleteCover(ctx context.Context, userID, bookID string) e
 		return fmt.Errorf("%w: invalid user id", ErrForbidden)
 	}
 
-	return s.coverRepo.DeleteByBookID(ctx, bookID)
+	cover, err := s.coverRepo.GetByBookID(ctx, bookID)
+	if err != nil {
+		return err
+	}
+
+	files := []string{cover.OriginalPath, cover.ThumbPath, cover.ThumbPath}
+	for _, file := range files {
+		if err = s.minioClient.DeleteFile(ctx, file); err != nil {
+			return err
+		}
+	}
+
+	if err = s.coverRepo.DeleteByBookID(ctx, bookID); err != nil {
+		return err
+	}
+
+	return s.coverRepo.UpdateBookCover(ctx, bookID, domain.CoverStatusNone, "", "")
 }
