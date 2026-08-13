@@ -64,7 +64,7 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 		}
 
-		return err
+		return nil
 	}
 
 	coverULR := fmt.Sprintf("/covers/%s/cover.jpg", msg.BookID)
@@ -74,7 +74,7 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 		}
 
-		return err
+		return nil
 	}
 
 	thumbURL := fmt.Sprintf("/covers/%s/thumb.jpg", msg.BookID)
@@ -84,10 +84,10 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 		}
 
-		return err
+		return nil
 	}
 
-	if err = h.repo.UpdateStatus(ctx, msg.CoverID, "ready", "", "", err.Error()); err != nil {
+	if err = h.repo.UpdateStatus(ctx, msg.CoverID, "ready", coverULR, thumbURL, ""); err != nil {
 		slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 	}
 

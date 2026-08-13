@@ -5,6 +5,7 @@ go 1.26
 require (
 	github.com/disintegration/imaging v1.6.2
 	github.com/jmoiron/sqlx v1.4.0
+	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.2.1
 	github.com/rabbitmq/amqp091-go v1.13.0
 	go.uber.org/zap v1.27.0
