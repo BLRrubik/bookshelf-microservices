@@ -132,8 +132,8 @@ func (s *CoverService) GetCover(ctx context.Context, bookID string) (*domain.Cov
 
 	resp := &domain.CoverResponse{
 		Status:   cover.Status,
-		CoverURL: cover.CoverURL,
-		ThumbURL: cover.ThumbURL,
+		CoverURL: s.minioClient.GetFileURL(cover.CoverPath),
+		ThumbURL: s.minioClient.GetFileURL(cover.ThumbPath),
 		Message:  cover.Error,
 	}
 
@@ -160,8 +160,8 @@ func (s *CoverService) GetCoverStatus(ctx context.Context, bookID string) (*doma
 	return &domain.CoverStatusResponse{
 		CoverID:     cover.ID,
 		Status:      cover.Status,
-		CoverURL:    cover.CoverPath,
-		ThumbURL:    cover.ThumbPath,
+		CoverURL:    s.minioClient.GetFileURL(cover.CoverPath),
+		ThumbURL:    s.minioClient.GetFileURL(cover.ThumbPath),
 		Error:       cover.Error,
 		CreatedAt:   cover.CreatedAt,
 		CompletedAt: cover.CompletedAt,
