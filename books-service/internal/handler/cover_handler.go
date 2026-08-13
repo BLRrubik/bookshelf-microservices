@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"bookshelf/books-service/internal/domain"
 	"bookshelf/books-service/internal/service"
 	"errors"
 	"fmt"
@@ -56,4 +57,60 @@ func (h *CoverHandler) UploadBookCover(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusAccepted, coverResp)
+}
+
+func (h *CoverHandler) GetBookCover(w http.ResponseWriter, r *http.Request) {
+	bookID := chi.URLParam(r, "id")
+
+	resp, err := h.svc.GetCover(r.Context(), bookID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal server error")
+
+		return
+	}
+
+	statusCode := http.StatusOK
+	switch resp.Status {
+	case domain.CoverStatusFailed:
+		statusCode = http.StatusInternalServerError
+	case domain.CoverStatusProcessing:
+		statusCode = http.StatusAccepted
+	case domain.CoverStatusNone:
+		statusCode = http.StatusNotFound
+	}
+
+	writeJSON(w, statusCode, resp)
+}
+
+func (h *CoverHandler) GetBookCoverStatus(w http.ResponseWriter, r *http.Request) {
+	bookID := chi.URLParam(r, "id")
+
+	resp, err := h.svc.GetCoverStatus(r.Context(), bookID)
+	if err != nil {
+		writeError(w, r, http.StatusInternalServerError, "internal server error")
+
+		return
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
+func (h *CoverHandler) DeleteBookCover(w http.ResponseWriter, r *http.Request) {
+	bookID := chi.URLParam(r, "id")
+	userID := getUserID(r.Context())
+
+	if err := h.svc.DeleteCover(r.Context(), bookID, userID); err != nil {
+		switch {
+		case errors.Is(err, service.ErrCoverNotFound):
+			writeError(w, r, http.StatusNotFound, "cover not found")
+		case errors.Is(err, service.ErrForbidden):
+			writeError(w, r, http.StatusForbidden, "forbidden")
+		default:
+			writeError(w, r, http.StatusInternalServerError, "internal server error")
+		}
+
+		return
+	}
+
+	writeJSON(w, http.StatusNoContent, struct{}{})
 }

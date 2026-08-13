@@ -46,6 +46,9 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 		r.Get("/books", h.bookHandler.List)
 		r.Get("/books/{id}", h.bookHandler.GetByID)
 
+		r.Get("/books/{id}/cover", h.coverHandler.GetBookCover)
+		r.Get("/books/{id}/cover/status", h.coverHandler.GetBookCoverStatus)
+
 		r.Group(func(r chi.Router) {
 			r.Use(AuthMiddleware(h.authClient))
 
@@ -58,6 +61,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 			r.Delete("/books/{id}", h.bookHandler.Delete)
 
 			r.Post("/books/{id}/cover", h.coverHandler.UploadBookCover)
+			r.Delete("/books/{id}/cover", h.coverHandler.DeleteBookCover)
 		})
 
 	})
