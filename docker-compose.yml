@@ -35,6 +35,19 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis for caching and rate limiting
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
   # RabbitMQ Message Broker
   rabbitmq:
     image: rabbitmq:3-management-alpine
@@ -42,8 +55,8 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     ports:
-      - "5672:5672"   # AMQP
-      - "15672:15672" # Management UI
+      - "5672:5672"
+      - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -60,97 +73,27 @@ services:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
     ports:
-      - "9000:9000"   # API
-      - "9001:9001"   # Console
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - minio_data:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
   # Frontend Application
   frontend:
     build: ./frontend
     ports:
-      - "5175:80"
+      - "5176:80"
     depends_on:
       auth-postgres:
         condition: service_healthy
       books-postgres:
         condition: service_healthy
-
-  # Auth Service (Go)
-  auth-service:
-    build: ./auth-service
-    ports:
-      - "8081:8081"
-    environment:
-      PORT: "8081"
-      DATABASE_URL: "postgres://postgres:postgres@auth-postgres:5432/auth?sslmode=disable"
-    depends_on:
-      auth-postgres:
+      redis:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-
-  # Books Service (Go)
-  books-service:
-    build: ./books-service
-    ports:
-      - "8082:8082"
-    environment:
-      PORT: "8082"
-      DATABASE_URL: "postgres://postgres:postgres@books-postgres:5432/books?sslmode=disable"
-      AUTH_SERVICE_URL: "http://auth-service:8081"
-    depends_on:
-      books-postgres:
-        condition: service_healthy
-      auth-service:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8082/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
-
-  # Worker Service (Go)
-  worker-service:
-    build: ./worker-service
-    ports:
-      - "8083:8083"
-    environment:
-      PORT: "8083"
-      DATABASE_URL: "postgres://postgres:postgres@books-postgres:5432/books?sslmode=disable"
-      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
-      MINIO_URL: "minio:9000"
-      MINIO_ACCESS: "minioadmin"
-      MINIO_SECRET: "minioadmin"
-      MINIO_BUCKET: "bookshelf-covers"
-      MINIO_PUBLIC_ENDPOINT: "http://localhost:9000"
-      MINIO_USE_SSL: "false"
-    depends_on:
-      books-postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      minio:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8083/health"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
-      start_period: 5s
 
 volumes:
   auth_postgres_data:
   books_postgres_data:
+  redis_data:
   rabbitmq_data:
   minio_data:

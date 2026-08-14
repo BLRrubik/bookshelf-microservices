@@ -106,7 +106,3 @@ export function CoverUpload({ bookId, onSuccess }: CoverUploadProps) {
   );
 }
 
-
-
-
-

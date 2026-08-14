@@ -1,36 +1,37 @@
-# Project 3: Async — Инфраструктура
+# Project 4: API Gateway — Инфраструктура
 
 ## О проекте
 
-В этом проекте вы добавите **асинхронную обработку** через очереди сообщений и объектное хранилище.
+В этом проекте вы создадите **API Gateway** — единую точку входа для всех клиентов.
 
 **Что вы реализуете:**
-- **Worker** — фоновый сервис для обработки изображений
-- Публикация и потребление сообщений через RabbitMQ
-- Загрузка и хранение файлов в MinIO (S3-совместимое хранилище)
-- Асинхронный flow: Upload → Queue → Worker → Storage
+- **api-gateway** — reverse proxy с маршрутизацией
+- Rate limiting на базе Redis
+- Кэширование запросов
+- CORS, логирование, трейсинг
+- Dashboard с агрегированными данными
 
 **Архитектура:**
 ```
-                    ┌─────────────────┐
-Frontend (:5175) ──►│  auth-service   │──► auth-postgres (:5432)
-                    │     (:8081)     │
-                    └─────────────────┘
-                    ┌─────────────────┐
-                 ──►│  books-service  │──► books-postgres (:5433)
-                    │     (:8082)     │──► MinIO (:9000)
-                    └────────┬────────┘
-                             │ publish
-                             ▼
-                    ┌─────────────────┐
-                    │    RabbitMQ     │
-                    │  (:5672/15672)  │
-                    └────────┬────────┘
-                             │ consume
-                             ▼
-                    ┌─────────────────┐
-                    │     Worker      │──► MinIO (:9000)
-                    └─────────────────┘──► books-postgres (:5433)
+                         ┌───────────────────────────────────────┐
+                         │           API Gateway (:8000)          │
+                         │  ┌─────────┐ ┌─────────┐ ┌─────────┐  │
+Frontend (:5176) ───────►│  │  CORS   │→│  Rate   │→│  Cache  │  │
+                         │  │         │ │ Limiter │ │         │  │
+                         │  └─────────┘ └─────────┘ └─────────┘  │
+                         │                   │                    │
+                         └───────────────────┼────────────────────┘
+                                             │
+                    ┌────────────────────────┼────────────────────────┐
+                    │                        │                        │
+                    ▼                        ▼                        ▼
+           ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+           │  auth-service   │    │  books-service  │    │     Worker      │
+           │     (:8081)     │    │     (:8082)     │    │                 │
+           └────────┬────────┘    └────────┬────────┘    └────────┬────────┘
+                    │                      │                      │
+                    ▼                      ▼                      ▼
+           auth-postgres(:5432)   books-postgres(:5433)   RabbitMQ / MinIO
 ```
 
 ## Содержимое
@@ -40,8 +41,8 @@ Frontend (:5175) ──►│  auth-service   │──► auth-postgres (:5432)
 ├── auth-service/
 │   └── migrations/         # Миграции для auth БД
 ├── books-service/
-│   └── migrations/         # Миграции для books БД (включая covers)
-├── docker-compose.yml      # PostgreSQL×2 + RabbitMQ + MinIO + Frontend
+│   └── migrations/         # Миграции для books БД
+├── docker-compose.yml      # PostgreSQL×2 + Redis + RabbitMQ + MinIO + Frontend
 └── README.md               # Этот файл
 ```
 
@@ -52,21 +53,21 @@ docker compose up -d --build
 ```
 
 После запуска:
-- **Frontend**: http://localhost:5175
+- **Frontend**: http://localhost:5176
 - **auth-postgres**: localhost:5432
 - **books-postgres**: localhost:5433
+- **Redis**: localhost:6379
 - **RabbitMQ UI**: http://localhost:15672 (guest/guest)
 - **MinIO Console**: http://localhost:9001 (minioadmin/minioadmin)
 
 ## Как это работает
 
-Frontend показывает новые возможности по мере реализации:
+Frontend настроен на работу через ваш gateway (порт 8000). По мере реализации функций gateway — они становятся доступны:
 
-1. Реализовали Worker → появилась загрузка обложек
-2. Загрузили обложку → статус "Processing..."
-3. Worker обработал → обложка появляется!
-
-При остановке Worker сообщения сохраняются в очереди RabbitMQ и будут обработаны после перезапуска.
+1. Реализовали proxy → запросы проходят через gateway
+2. Добавили CORS → frontend перестаёт получать ошибки
+3. Добавили rate limiting → защита от перегрузки
+4. Добавили кэш → ускорение повторных запросов
 
 ## Подключение к сервисам
 
@@ -78,6 +79,11 @@ postgres://postgres:postgres@localhost:5432/auth?sslmode=disable
 **books-postgres:**
 ```
 postgres://postgres:postgres@localhost:5433/books?sslmode=disable
+```
+
+**Redis:**
+```
+redis://localhost:6379
 ```
 
 **RabbitMQ:**
@@ -116,11 +122,16 @@ docker compose down -v        # Удалить всё (включая данны
 docker ps  # Проверьте, что Docker daemon работает
 ```
 
-### Frontend не видит сервисы
+### Frontend не видит gateway
+1. Убедитесь, что api-gateway запущен на порту 8000
+2. Проверьте CORS middleware в gateway
+3. Откройте DevTools → Network для диагностики
+
+### Ошибка 502 Bad Gateway
+Backend-сервисы не запущены или недоступны:
 1. Убедитесь, что auth-service запущен на порту 8081
 2. Убедитесь, что books-service запущен на порту 8082
-3. Проверьте CORS middleware в ваших сервисах
-4. Откройте DevTools → Network для диагностики
+3. Проверьте логи сервисов
 
 ### Ошибка подключения к БД
 ```bash
@@ -129,14 +140,9 @@ docker compose logs auth-postgres  # Логи auth БД
 docker compose logs books-postgres # Логи books БД
 ```
 
-### RabbitMQ не запускается
+### Redis не запускается
 ```bash
-docker compose logs rabbitmq  # Логи RabbitMQ
-```
-
-### MinIO не запускается
-```bash
-docker compose logs minio  # Логи MinIO
+docker compose logs redis  # Логи Redis
 ```
 
 ### Пересборка frontend
@@ -150,15 +156,3 @@ docker compose up -d frontend
 Подробное описание каждого этапа находится на сайте курса:
 
 **https://praxiscode.io**
-
-
-## Gateway
-Frontend ──── gateway:8000/api/v1/* ──┬── auth-service:8081
-                                      └── books-service:8082 ── worker-service:8083
-
-Сквозные функции:
-* Аутентификация и авторизация
-* Rate limiting (ограничение количества запросов)
-* Логирование и трейсинг
-* CORS заголовки
-* Кэширование

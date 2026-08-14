@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { booksApi } from './client';
+import { gatewayApi } from './client';
 import type { CoverUploadResponse, CoverStatusResponse } from '@/types/api';
 
 export function useUploadCover(bookId: string) {
@@ -11,7 +11,7 @@ export function useUploadCover(bookId: string) {
       const formData = new FormData();
       formData.append('file', file);
       
-      const response = await booksApi.post<CoverUploadResponse>(
+      const response = await gatewayApi.post<CoverUploadResponse>(
         `/api/v1/books/${bookId}/cover`,
         formData,
         {
@@ -38,7 +38,7 @@ export function useCoverStatus(bookId: string, initialStatus?: string) {
   return useQuery({
     queryKey: ['cover-status', bookId],
     queryFn: async () => {
-      const response = await booksApi.get<CoverStatusResponse>(
+      const response = await gatewayApi.get<CoverStatusResponse>(
         `/api/v1/books/${bookId}/cover/status`
       );
       return response.data;
@@ -63,7 +63,7 @@ export function useDeleteCover(bookId: string) {
 
   return useMutation({
     mutationFn: async () => {
-      await booksApi.delete(`/api/v1/books/${bookId}/cover`);
+      await gatewayApi.delete(`/api/v1/books/${bookId}/cover`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books', bookId] });
@@ -75,7 +75,3 @@ export function useDeleteCover(bookId: string) {
     },
   });
 }
-
-
-
-

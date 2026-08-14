@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { booksApi } from './client';
+import { gatewayApi } from './client';
 import type { 
   Review,
   ReviewListResponse,
@@ -13,7 +13,7 @@ export function useBookReviews(bookId: string, params: ReviewsParams = {}) {
   return useQuery({
     queryKey: ['reviews', bookId, params],
     queryFn: async () => {
-      const response = await booksApi.get<ReviewListResponse>(
+      const response = await gatewayApi.get<ReviewListResponse>(
         `/api/v1/books/${bookId}/reviews`, 
         { params }
       );
@@ -28,7 +28,7 @@ export function useReview(id: string) {
   return useQuery({
     queryKey: ['reviews', 'single', id],
     queryFn: async () => {
-      const response = await booksApi.get<Review>(`/api/v1/reviews/${id}`);
+      const response = await gatewayApi.get<Review>(`/api/v1/reviews/${id}`);
       return response.data;
     },
     enabled: !!id,
@@ -41,7 +41,7 @@ export function useCreateReview(bookId: string) {
 
   return useMutation({
     mutationFn: async (data: CreateReviewRequest) => {
-      const response = await booksApi.post<Review>(
+      const response = await gatewayApi.post<Review>(
         `/api/v1/books/${bookId}/reviews`, 
         data
       );
@@ -51,6 +51,7 @@ export function useCreateReview(bookId: string) {
       queryClient.invalidateQueries({ queryKey: ['reviews', bookId] });
       queryClient.invalidateQueries({ queryKey: ['books', bookId] });
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Рецензия добавлена!');
     },
     onError: (error: any) => {
@@ -67,7 +68,7 @@ export function useUpdateReview(reviewId: string, bookId: string) {
 
   return useMutation({
     mutationFn: async (data: UpdateReviewRequest) => {
-      const response = await booksApi.put<Review>(
+      const response = await gatewayApi.put<Review>(
         `/api/v1/reviews/${reviewId}`, 
         data
       );
@@ -78,6 +79,7 @@ export function useUpdateReview(reviewId: string, bookId: string) {
       queryClient.invalidateQueries({ queryKey: ['reviews', 'single', reviewId] });
       queryClient.invalidateQueries({ queryKey: ['books', bookId] });
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Рецензия обновлена');
     },
     onError: () => {
@@ -91,12 +93,13 @@ export function useDeleteReview(bookId: string) {
 
   return useMutation({
     mutationFn: async (reviewId: string) => {
-      await booksApi.delete(`/api/v1/reviews/${reviewId}`);
+      await gatewayApi.delete(`/api/v1/reviews/${reviewId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['reviews', bookId] });
       queryClient.invalidateQueries({ queryKey: ['books', bookId] });
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Рецензия удалена');
     },
     onError: () => {
@@ -109,7 +112,7 @@ export function useUserReviews(userId: string, params: ReviewsParams = {}) {
   return useQuery({
     queryKey: ['reviews', 'user', userId, params],
     queryFn: async () => {
-      const response = await booksApi.get<ReviewListResponse>(
+      const response = await gatewayApi.get<ReviewListResponse>(
         `/api/v1/users/${userId}/reviews`,
         { params }
       );

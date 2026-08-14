@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { booksApi } from './client';
+import { gatewayApi } from './client';
 import type { 
   Book,
   BookListResponse,
@@ -13,7 +13,7 @@ export function useBooks(params: BooksParams = {}) {
   return useQuery({
     queryKey: ['books', params],
     queryFn: async () => {
-      const response = await booksApi.get<BookListResponse>('/api/v1/books', { params });
+      const response = await gatewayApi.get<BookListResponse>('/api/v1/books', { params });
       return response.data;
     },
     retry: false,
@@ -24,7 +24,7 @@ export function useBook(id: string) {
   return useQuery({
     queryKey: ['books', id],
     queryFn: async () => {
-      const response = await booksApi.get<Book>(`/api/v1/books/${id}`);
+      const response = await gatewayApi.get<Book>(`/api/v1/books/${id}`);
       return response.data;
     },
     enabled: !!id,
@@ -37,11 +37,12 @@ export function useCreateBook() {
 
   return useMutation({
     mutationFn: async (data: CreateBookRequest) => {
-      const response = await booksApi.post<Book>('/api/v1/books', data);
+      const response = await gatewayApi.post<Book>('/api/v1/books', data);
       return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Книга добавлена!');
     },
     onError: () => {
@@ -55,12 +56,13 @@ export function useUpdateBook(id: string) {
 
   return useMutation({
     mutationFn: async (data: UpdateBookRequest) => {
-      const response = await booksApi.put<Book>(`/api/v1/books/${id}`, data);
+      const response = await gatewayApi.put<Book>(`/api/v1/books/${id}`, data);
       return response.data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
       queryClient.invalidateQueries({ queryKey: ['books', id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Книга обновлена');
     },
     onError: () => {
@@ -74,10 +76,11 @@ export function useDeleteBook() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      await booksApi.delete(`/api/v1/books/${id}`);
+      await gatewayApi.delete(`/api/v1/books/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       toast.success('Книга удалена');
     },
     onError: () => {

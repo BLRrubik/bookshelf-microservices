@@ -1,17 +1,24 @@
-import { Link } from 'react-router-dom';
-import { BookOpen, Plus, User, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Link } from "react-router-dom";
+import {
+  BookOpen,
+  Plus,
+  User,
+  LogOut,
+  Search,
+  LayoutDashboard,
+  BookMarked,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { SearchInput } from './SearchInput';
-import { useAuthStore } from '@/stores/auth';
-import { useLogout } from '@/api/auth';
+} from "@/components/ui/dropdown-menu";
+import { useAuthStore } from "@/stores/auth";
+import { useLogout } from "@/api/auth";
 
 export function Header() {
   const { isAuthenticated, user } = useAuthStore();
@@ -21,12 +28,13 @@ export function Header() {
     logout.mutate();
   };
 
-  const initials = user?.username
-    ?.split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || 'U';
+  const initials =
+    user?.username
+      ?.split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "U";
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -36,9 +44,29 @@ export function Header() {
           <span className="font-display text-xl font-semibold">Bookshelf</span>
         </Link>
 
-        <div className="flex-1 max-w-md mx-4">
-          <SearchInput />
-        </div>
+        {/* Navigation Links */}
+        <nav className="flex items-center gap-1 ml-4">
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/">
+              <LayoutDashboard className="h-4 w-4 mr-1" />
+              Статистика
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/books">
+              <BookMarked className="h-4 w-4 mr-1" />
+              Каталог
+            </Link>
+          </Button>
+          <Button variant="ghost" size="sm" asChild>
+            <Link to="/search">
+              <Search className="h-4 w-4 mr-1" />
+              Поиск
+            </Link>
+          </Button>
+        </nav>
+
+        <div className="flex-1" />
 
         <nav className="flex items-center gap-2">
           {isAuthenticated ? (
@@ -68,12 +96,12 @@ export function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={handleLogout}
                     disabled={logout.isPending}
                   >
                     <LogOut className="h-4 w-4 mr-2" />
-                    {logout.isPending ? 'Выход...' : 'Выйти'}
+                    {logout.isPending ? "Выход..." : "Выйти"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

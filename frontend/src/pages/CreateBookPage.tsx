@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import { useQueryClient } from '@tanstack/react-query';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { ArrowLeft } from 'lucide-react';
@@ -21,7 +22,7 @@ import {
 } from '@/components/ui/form';
 import { CoverPicker } from '@/components/books/CoverPicker';
 import { useCreateBook } from '@/api/books';
-import { booksApi } from '@/api/client';
+import { gatewayApi } from '@/api/client';
 
 const bookSchema = z.object({
   title: z.string().min(1, 'Обязательное поле').max(255),
@@ -35,6 +36,7 @@ type BookFormData = z.infer<typeof bookSchema>;
 
 export function CreateBookPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const createBook = useCreateBook();
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [isUploadingCover, setIsUploadingCover] = useState(false);
@@ -67,11 +69,15 @@ export function CreateBookPage() {
           const formData = new FormData();
           formData.append('file', coverFile);
           
-          await booksApi.post(`/api/v1/books/${book.id}/cover`, formData, {
+          await gatewayApi.post(`/api/v1/books/${book.id}/cover`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
           });
+          
+          // Invalidate book cache so BookPage fetches fresh data with cover_status
+          queryClient.invalidateQueries({ queryKey: ['books', book.id] });
+          
           toast.success('Книга добавлена с обложкой!');
         } catch (error) {
           // Book was created, but cover upload failed
@@ -238,3 +244,4 @@ export function CreateBookPage() {
     </motion.div>
   );
 }
+

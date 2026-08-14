@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { authApi } from './client';
+import { gatewayApi } from './client';
 import { useAuthStore } from '@/stores/auth';
 import type { 
   AuthResponse, 
@@ -12,18 +12,13 @@ import type {
   UpdateUserRequest
 } from '@/types/api';
 
-// Project 2: AuthResponse now includes refresh_token
-interface AuthResponseP2 extends AuthResponse {
-  refresh_token: string;
-}
-
 export function useLogin() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
   return useMutation({
     mutationFn: async (data: LoginRequest) => {
-      const response = await authApi.post<AuthResponseP2>('/api/v1/auth/login', data);
+      const response = await gatewayApi.post<AuthResponse>('/api/v1/auth/login', data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -43,7 +38,7 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: async (data: RegisterRequest) => {
-      const response = await authApi.post<AuthResponseP2>('/api/v1/auth/register', data);
+      const response = await gatewayApi.post<AuthResponse>('/api/v1/auth/register', data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -58,14 +53,13 @@ export function useRegister() {
   });
 }
 
-// Project 2: Logout with API call
 export function useLogout() {
   const navigate = useNavigate();
   const logout = useAuthStore((state) => state.logout);
 
   return useMutation({
     mutationFn: async () => {
-      await authApi.post('/api/v1/auth/logout');
+      await gatewayApi.post('/api/v1/auth/logout');
     },
     onSuccess: () => {
       logout();
@@ -73,7 +67,6 @@ export function useLogout() {
       toast.success('Вы вышли из аккаунта');
     },
     onError: () => {
-      // Logout locally even if API fails
       logout();
       navigate('/');
     },
@@ -86,7 +79,7 @@ export function useCurrentUser() {
   return useQuery({
     queryKey: ['currentUser'],
     queryFn: async () => {
-      const response = await authApi.get<User>('/api/v1/users/me');
+      const response = await gatewayApi.get<User>('/api/v1/users/me');
       return response.data;
     },
     enabled: !!token,
@@ -98,7 +91,7 @@ export function useUpdateProfile() {
 
   return useMutation({
     mutationFn: async (data: UpdateUserRequest) => {
-      const response = await authApi.put<User>('/api/v1/users/me', data);
+      const response = await gatewayApi.put<User>('/api/v1/users/me', data);
       return response.data;
     },
     onSuccess: (data) => {
@@ -115,7 +108,7 @@ export function useUser(userId: string) {
   return useQuery({
     queryKey: ['users', userId],
     queryFn: async () => {
-      const response = await authApi.get<PublicUser>(`/api/v1/users/${userId}`);
+      const response = await gatewayApi.get<PublicUser>(`/api/v1/users/${userId}`);
       return response.data;
     },
     enabled: !!userId,

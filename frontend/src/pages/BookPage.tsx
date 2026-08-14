@@ -23,7 +23,7 @@ import { useBookReviews } from '@/api/reviews';
 import { useDeleteCover } from '@/api/covers';
 import { useAuthStore } from '@/stores/auth';
 import { formatDate } from '@/lib/date';
-import { booksApi } from '@/api/client';
+import { gatewayApi } from '@/api/client';
 import {
   Dialog,
   DialogContent,
@@ -96,7 +96,7 @@ export function BookPage() {
         try {
           const formData = new FormData();
           formData.append('file', editCoverFile);
-          await booksApi.post(`/api/v1/books/${id}/cover`, formData, {
+          await gatewayApi.post(`/api/v1/books/${id}/cover`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data',
             },
@@ -152,7 +152,7 @@ export function BookPage() {
       className="space-y-8"
     >
       <Button variant="ghost" asChild>
-        <Link to="/">
+        <Link to="/books">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Назад к каталогу
         </Link>

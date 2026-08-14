@@ -1,4 +1,4 @@
-import { Lock, BookOpen, ArrowRight, Server } from 'lucide-react';
+import { Lock, BookOpen, ArrowRight, Zap } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './card';
 import { Button } from './button';
 
@@ -8,7 +8,6 @@ interface FeatureLockedProps {
   stage: number;
   hint?: string;
   icon?: React.ReactNode;
-  serviceName?: string;
 }
 
 export function FeatureLocked({ 
@@ -16,8 +15,7 @@ export function FeatureLocked({
   description, 
   stage, 
   hint,
-  icon,
-  serviceName 
+  icon
 }: FeatureLockedProps) {
   return (
     <Card className="border-dashed border-2 border-muted-foreground/25 bg-muted/5">
@@ -31,13 +29,6 @@ export function FeatureLocked({
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-4">
-        {serviceName && (
-          <div className="inline-flex items-center gap-2 bg-blue-500/10 text-blue-400 px-4 py-2 rounded-full text-sm font-medium">
-            <Server className="h-4 w-4" />
-            <span>{serviceName}</span>
-          </div>
-        )}
-        
         {stage > 0 && (
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
             <BookOpen className="h-4 w-4" />
@@ -62,17 +53,63 @@ export function FeatureLocked({
   );
 }
 
+interface GatewayNotRunningProps {
+  onRetry?: () => void;
+}
+
+export function GatewayNotRunning({ onRetry }: GatewayNotRunningProps) {
+  return (
+    <Card className="border-destructive/50 bg-destructive/5">
+      <CardHeader className="text-center pb-2">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
+          <Zap className="h-8 w-8 text-destructive" />
+        </div>
+        <CardTitle className="text-xl text-destructive">API Gateway недоступен</CardTitle>
+        <CardDescription className="text-base">
+          Не удалось подключиться к API Gateway. Убедись, что он запущен.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="text-center space-y-4">
+        <div className="bg-muted p-4 rounded-lg text-left max-w-md mx-auto space-y-2">
+          <p className="text-xs text-muted-foreground mb-2">Запусти api-gateway:</p>
+          <p className="text-sm font-mono text-muted-foreground">
+            $ cd api-gateway && go run ./cmd/server
+          </p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Gateway должен быть доступен на порту 8000
+          </p>
+        </div>
+        
+        <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+          <BookOpen className="h-4 w-4" />
+          <span>Смотри Этап 4 — Проксирующие хендлеры</span>
+        </div>
+        
+        {onRetry && (
+          <div className="pt-2">
+            <Button onClick={onRetry} variant="outline">
+              Попробовать снова
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 interface FeatureErrorProps {
   title: string;
   error?: Error | null;
   onRetry?: () => void;
-  serviceName?: string;
-  servicePort?: number;
 }
 
-export function FeatureError({ title, error, onRetry, serviceName, servicePort }: FeatureErrorProps) {
+export function FeatureError({ title, error, onRetry }: FeatureErrorProps) {
   const isNetworkError = error?.message?.includes('Network Error') || 
                          error?.message?.includes('ERR_CONNECTION_REFUSED');
+  
+  if (isNetworkError) {
+    return <GatewayNotRunning onRetry={onRetry} />;
+  }
   
   return (
     <Card className="border-destructive/50 bg-destructive/5">
@@ -82,27 +119,10 @@ export function FeatureError({ title, error, onRetry, serviceName, servicePort }
         </div>
         <CardTitle className="text-xl text-destructive">{title}</CardTitle>
         <CardDescription className="text-base">
-          {isNetworkError 
-            ? `Не удалось подключиться к ${serviceName || 'серверу'}. Убедись, что сервис запущен.`
-            : 'Произошла ошибка при загрузке данных.'
-          }
+          Произошла ошибка при загрузке данных.
         </CardDescription>
       </CardHeader>
       <CardContent className="text-center space-y-4">
-        {isNetworkError && serviceName && (
-          <div className="bg-muted p-4 rounded-lg text-left max-w-md mx-auto space-y-2">
-            <p className="text-xs text-muted-foreground mb-2">Запусти {serviceName}:</p>
-            <p className="text-sm font-mono text-muted-foreground">
-              $ cd {serviceName} && go run ./cmd/server
-            </p>
-            {servicePort && (
-              <p className="text-xs text-muted-foreground">
-                Сервис должен быть доступен на порту {servicePort}
-              </p>
-            )}
-          </div>
-        )}
-        
         {onRetry && (
           <Button onClick={onRetry} variant="outline">
             Попробовать снова

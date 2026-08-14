@@ -1,12 +1,14 @@
 /**
- * Маппинг функций на этапы проекта 3 (Event-Driven Architecture)
+ * Маппинг функций на этапы проекта 4 (API Gateway)
  * 
- * Этот проект добавляет асинхронную обработку обложек:
- * - books-service публикует сообщения в RabbitMQ
- * - worker-service обрабатывает изображения
- * - MinIO хранит файлы
+ * В этом проекте frontend работает через единую точку входа — API Gateway (порт 8000).
+ * Базовые сервисы (auth, books, reviews, covers) уже готовы из предыдущих проектов.
  * 
- * Базовые сервисы (auth, books, reviews) уже готовы из Project 2.
+ * Новые функции:
+ * - Rate Limiting (Этапы 13-15)
+ * - Кэширование (Этапы 16-18)  
+ * - Dashboard (Этапы 19-22)
+ * - Глобальный поиск (Этап 23)
  */
 
 export interface StageInfo {
@@ -15,57 +17,74 @@ export interface StageInfo {
   description: string;
   hint: string;
   icon: string;
-  service: 'auth' | 'books' | 'worker';
 }
 
 export const FEATURE_STAGES: Record<string, StageInfo> = {
+  // Базовые — уже готовы из предыдущих проектов
+  gateway: {
+    stage: 4,
+    name: 'API Gateway',
+    description: 'Единая точка входа для всех запросов',
+    hint: 'Реализуйте проксирующие хендлеры в api-gateway',
+    icon: '🚪',
+  },
   auth: {
     stage: 0,
     name: 'Авторизация',
-    description: 'Готово из Project 2',
+    description: 'Готово из Project 1-3',
     hint: 'auth-service уже реализован',
     icon: '👤',
-    service: 'auth',
   },
   books: {
     stage: 0,
     name: 'Каталог книг',
-    description: 'Готово из Project 2',
+    description: 'Готово из Project 1-3',
     hint: 'books-service уже реализован',
     icon: '📚',
-    service: 'books',
   },
   reviews: {
     stage: 0,
     name: 'Рецензии',
-    description: 'Готово из Project 2',
+    description: 'Готово из Project 1-3',
     hint: 'reviews уже реализованы',
     icon: '⭐',
-    service: 'books',
   },
-  coverUpload: {
-    stage: 13,
-    name: 'Загрузка обложки',
-    description: 'Загрузка изображения обложки книги',
-    hint: 'Реализуйте POST /api/v1/books/{id}/cover в CoverHandler',
-    icon: '📤',
-    service: 'books',
+  covers: {
+    stage: 0,
+    name: 'Обложки',
+    description: 'Готово из Project 3',
+    hint: 'cover upload уже реализован',
+    icon: '🖼️',
   },
-  coverStatus: {
-    stage: 18,
-    name: 'Статус обложки',
-    description: 'Получение статуса обработки и URL обложки',
-    hint: 'Реализуйте GET /api/v1/books/{id}/cover/status в CoverHandler',
-    icon: '🔄',
-    service: 'books',
+  
+  // Новые функции Project 4
+  rateLimit: {
+    stage: 14,
+    name: 'Rate Limiting',
+    description: 'Защита API от перегрузки',
+    hint: 'Реализуйте RateLimitMiddleware с Redis',
+    icon: '⚡',
   },
-  coverProcessing: {
-    stage: 15,
-    name: 'Обработка обложки',
-    description: 'Worker обрабатывает изображения (resize, thumbnail)',
-    hint: 'Реализуйте обработку изображений в worker-service',
-    icon: '⚙️',
-    service: 'worker',
+  caching: {
+    stage: 16,
+    name: 'Кэширование',
+    description: 'Кэширование ответов в Redis',
+    hint: 'Реализуйте CacheMiddleware для GET запросов',
+    icon: '💾',
+  },
+  dashboard: {
+    stage: 19,
+    name: 'Dashboard',
+    description: 'Агрегированные данные из нескольких сервисов',
+    hint: 'Реализуйте GET /api/v1/dashboard с агрегацией',
+    icon: '📊',
+  },
+  globalSearch: {
+    stage: 23,
+    name: 'Глобальный поиск',
+    description: 'Поиск по всем сервисам одновременно',
+    hint: 'Реализуйте GET /api/v1/search с параллельными запросами',
+    icon: '🔍',
   },
 };
 
@@ -80,7 +99,10 @@ export function isFeatureNotImplemented(error: unknown): boolean {
   // 404 - endpoint не существует
   if (axiosError.response?.status === 404) return true;
   
-  // Network error - сервис не запущен
+  // 502 - gateway не может достучаться до сервиса
+  if (axiosError.response?.status === 502) return true;
+  
+  // Network error - gateway не запущен
   if (axiosError.code === 'ERR_NETWORK') return true;
   if (axiosError.code === 'ERR_CONNECTION_REFUSED') return true;
   
@@ -88,7 +110,17 @@ export function isFeatureNotImplemented(error: unknown): boolean {
 }
 
 /**
- * Определяет, является ли ошибка сетевой (сервис не запущен)
+ * Определяет, является ли ошибка rate limit
+ */
+export function isRateLimited(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  
+  const axiosError = error as { response?: { status?: number } };
+  return axiosError.response?.status === 429;
+}
+
+/**
+ * Определяет, является ли ошибка сетевой (gateway не запущен)
  */
 export function isNetworkError(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false;

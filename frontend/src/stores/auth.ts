@@ -30,7 +30,7 @@ export const useAuthStore = create<AuthState>()(
         set({ token: null, refreshToken: null, user: null, isAuthenticated: false }),
     }),
     {
-      name: 'bookshelf-auth-p2',
+      name: 'bookshelf-auth-p4',
       partialize: (state) => ({ 
         token: state.token,
         refreshToken: state.refreshToken,

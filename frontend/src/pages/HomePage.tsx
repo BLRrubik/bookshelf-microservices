@@ -11,8 +11,8 @@ import {
 } from '@/components/ui/select';
 import { BookGrid } from '@/components/books/BookGrid';
 import { useBooks } from '@/api/books';
-import { FeatureLocked } from '@/components/ui/FeatureLocked';
-import { FEATURE_STAGES, isFeatureNotImplemented } from '@/config/stages';
+import { GatewayNotRunning, FeatureLocked } from '@/components/ui/FeatureLocked';
+import { isFeatureNotImplemented, isNetworkError, FEATURE_STAGES } from '@/config/stages';
 
 export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -22,7 +22,7 @@ export function HomePage() {
   const page = parseInt(searchParams.get('page') || '1');
   const search = searchParams.get('search') || undefined;
   
-  const { data, isLoading, isError, error } = useBooks({
+  const { data, isLoading, isError, error, refetch } = useBooks({
     page,
     limit: 20,
     search,
@@ -56,16 +56,20 @@ export function HomePage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Показываем заглушку, если books-service не запущен
+  // Показываем заглушку, если api-gateway не запущен
+  if (isError && isNetworkError(error)) {
+    return <GatewayNotRunning onRetry={() => refetch()} />;
+  }
+
+  // Показываем заглушку, если proxy не настроен
   if (isError && isFeatureNotImplemented(error)) {
-    const booksFeature = FEATURE_STAGES.books;
+    const gatewayFeature = FEATURE_STAGES.gateway;
     return (
       <FeatureLocked
-        title={`${booksFeature.icon} ${booksFeature.name}`}
-        description="books-service должен быть запущен для отображения каталога"
-        stage={0}
-        hint="Запусти docker-compose up или go run ./cmd/server в books-service"
-        serviceName="books-service"
+        title={`${gatewayFeature.icon} ${gatewayFeature.name}`}
+        description={gatewayFeature.description}
+        stage={gatewayFeature.stage}
+        hint={gatewayFeature.hint}
       />
     );
   }

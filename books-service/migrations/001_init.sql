@@ -1,7 +1,6 @@
 -- Books Service Database Schema (with cover support)
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Books table
 CREATE TABLE IF NOT EXISTS books (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     title VARCHAR(500) NOT NULL,
@@ -23,7 +22,6 @@ CREATE INDEX idx_books_author ON books(author);
 CREATE INDEX idx_books_created_at ON books(created_at);
 CREATE INDEX idx_books_cover_status ON books(cover_status);
 
--- Reviews table
 CREATE TABLE IF NOT EXISTS reviews (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     book_id UUID NOT NULL REFERENCES books(id) ON DELETE CASCADE,
@@ -38,10 +36,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 
 CREATE INDEX idx_reviews_book_id ON reviews(book_id);
 CREATE INDEX idx_reviews_user_id ON reviews(user_id);
-CREATE INDEX idx_reviews_rating ON reviews(rating);
-CREATE INDEX idx_reviews_created_at ON reviews(created_at);
 
--- Covers table (for tracking async processing)
 CREATE TABLE IF NOT EXISTS covers (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     book_id UUID NOT NULL REFERENCES books(id) ON DELETE CASCADE,
@@ -50,7 +45,6 @@ CREATE TABLE IF NOT EXISTS covers (
     cover_path TEXT,
     thumb_path TEXT,
     error TEXT,
-    started_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     completed_at TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -59,7 +53,6 @@ CREATE TABLE IF NOT EXISTS covers (
 CREATE INDEX idx_covers_book_id ON covers(book_id);
 CREATE INDEX idx_covers_status ON covers(status);
 
--- Triggers
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN

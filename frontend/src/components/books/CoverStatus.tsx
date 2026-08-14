@@ -81,6 +81,3 @@ export function CoverStatus({ bookId, initialStatus = 'none' }: CoverStatusProps
   );
 }
 
-
-
-

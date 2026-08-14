@@ -1,28 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
-import { authApi, booksApi } from './client';
-import type { ReadyResponse } from '@/types/api';
+import { gatewayApi } from './client';
+import type { HealthResponse } from '@/types/api';
 
-export function useAuthHealth() {
+export function useGatewayHealth() {
   return useQuery({
-    queryKey: ['health', 'auth'],
+    queryKey: ['health', 'gateway'],
     queryFn: async () => {
-      const response = await authApi.get<ReadyResponse>('/ready');
+      const response = await gatewayApi.get<HealthResponse>('/health');
       return response.data;
     },
-    refetchInterval: 30000, // Poll every 30 seconds
+    refetchInterval: 30000,
     retry: false,
   });
 }
 
-export function useBooksHealth() {
-  return useQuery({
-    queryKey: ['health', 'books'],
-    queryFn: async () => {
-      const response = await booksApi.get<ReadyResponse>('/ready');
-      return response.data;
-    },
-    refetchInterval: 30000, // Poll every 30 seconds
-    retry: false,
-  });
-}
-
+// Aliases for backward compatibility
+export const useAuthHealth = useGatewayHealth;
+export const useBooksHealth = useGatewayHealth;

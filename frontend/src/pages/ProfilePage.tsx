@@ -2,8 +2,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion } from 'framer-motion';
-import { User, BookOpen, Star } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -19,8 +18,7 @@ import {
 } from '@/components/ui/form';
 import { useAuthStore } from '@/stores/auth';
 import { useUpdateProfile } from '@/api/auth';
-import { useUserReviews } from '@/api/reviews';
-import { formatDate, formatDistanceToNow } from '@/lib/date';
+import { formatDate } from '@/lib/date';
 
 const profileSchema = z.object({
   username: z.string()
@@ -34,7 +32,6 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 export function ProfilePage() {
   const user = useAuthStore((state) => state.user);
   const updateProfile = useUpdateProfile();
-  const { data: userReviews, isLoading: reviewsLoading } = useUserReviews(user?.id || '');
   
   const form = useForm<ProfileFormData>({
     resolver: zodResolver(profileSchema),
@@ -129,64 +126,6 @@ export function ProfilePage() {
               </Button>
             </form>
           </Form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Star className="h-5 w-5" />
-            Мои рецензии
-          </CardTitle>
-          <CardDescription>
-            Рецензии, которые вы оставили на книги
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {reviewsLoading ? (
-            <p className="text-sm text-muted-foreground">Загрузка...</p>
-          ) : !userReviews?.data?.length ? (
-            <p className="text-sm text-muted-foreground">
-              Вы ещё не оставили ни одной рецензии
-            </p>
-          ) : (
-            <div className="space-y-4">
-              {userReviews.data.map((review: any) => (
-                <div key={review.id} className="border-b pb-4 last:border-0 last:pb-0">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <Link 
-                      to={`/books/${review.book?.id || review.book_id}`}
-                      className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors"
-                    >
-                      <BookOpen className="h-4 w-4" />
-                      {review.book?.title || 'Книга'}
-                    </Link>
-                    <div className="flex items-center gap-1">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-3 w-3 ${
-                            i < review.rating
-                              ? 'fill-yellow-400 text-yellow-400'
-                              : 'text-muted-foreground'
-                          }`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                  {review.title && (
-                    <h4 className="font-medium text-sm mb-1">{review.title}</h4>
-                  )}
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {review.content}
-                  </p>
-                  <time className="text-xs text-muted-foreground mt-2 block">
-                    {formatDistanceToNow(review.created_at)}
-                  </time>
-                </div>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
     </motion.div>
