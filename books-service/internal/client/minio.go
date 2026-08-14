@@ -8,6 +8,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"go.uber.org/zap"
 )
 
 const publicPolicy = `
@@ -28,9 +29,10 @@ type MinIOClient struct {
 	client         *minio.Client
 	bucket         string
 	publicEndpoint string
+	logger         *zap.Logger
 }
 
-func NewMinIOClient(endpoint, accessKey, secretKey, bucket, publicEndpoint string, useSSL bool) (*MinIOClient, error) {
+func NewMinIOClient(endpoint, accessKey, secretKey, bucket, publicEndpoint string, useSSL bool, logger *zap.Logger) (*MinIOClient, error) {
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: useSSL,
@@ -43,6 +45,7 @@ func NewMinIOClient(endpoint, accessKey, secretKey, bucket, publicEndpoint strin
 		client:         client,
 		bucket:         bucket,
 		publicEndpoint: publicEndpoint,
+		logger:         logger,
 	}, nil
 }
 
@@ -103,8 +106,13 @@ func (c *MinIOClient) UploadFile(
 		minio.PutObjectOptions{ContentType: contentType},
 	)
 	if err != nil {
+		c.logger.Error("failed to upload file", zap.String("object", objectName), zap.Error(err))
+
 		return fmt.Errorf("put object %q: %w", objectName, err)
 	}
+
+	c.logger.Info("file uploaded", zap.String("object", objectName), zap.Int64("size", size))
+
 	return nil
 }
 
@@ -120,6 +128,8 @@ func (c *MinIOClient) DeleteFile(ctx context.Context, objectName string) error {
 		minio.RemoveObjectOptions{},
 	)
 	if err != nil {
+		c.logger.Error("failed to delete file", zap.String("object", objectName), zap.Error(err))
+
 		return fmt.Errorf("remove object %q: %w", objectName, err)
 	}
 

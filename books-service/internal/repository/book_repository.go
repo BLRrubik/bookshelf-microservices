@@ -9,6 +9,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 )
 
 const (
@@ -73,12 +74,14 @@ WHERE id = $1
 )
 
 type BookRepository struct {
-	db *sqlx.DB
+	db     *sqlx.DB
+	logger *zap.Logger
 }
 
-func NewBookRepository(db *sqlx.DB) *BookRepository {
+func NewBookRepository(db *sqlx.DB, logger *zap.Logger) *BookRepository {
 	return &BookRepository{
-		db: db,
+		db:     db,
+		logger: logger,
 	}
 }
 
@@ -97,6 +100,8 @@ func (br *BookRepository) Create(ctx context.Context, book *domain.Book) error {
 		book.UserID,
 	)
 	if err != nil {
+		br.logger.Error("failed to create book", zap.Error(err))
+
 		return err
 	}
 
@@ -110,6 +115,8 @@ func (br *BookRepository) GetByID(ctx context.Context, id string) (*domain.Book,
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrBookNotFound
 		}
+
+		br.logger.Error("failed to get book by id", zap.String("book_id", id), zap.Error(err))
 
 		return nil, err
 	}
@@ -132,11 +139,15 @@ func (br *BookRepository) List(ctx context.Context, params domain.ListParams) ([
 		offset,
 	)
 	if err != nil {
+		br.logger.Error("failed to list books", zap.Error(err))
+
 		return nil, 0, err
 	}
 
 	err = br.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM books")
 	if err != nil {
+		br.logger.Error("failed to count books", zap.Error(err))
+
 		return nil, 0, err
 	}
 
@@ -159,11 +170,15 @@ func (br *BookRepository) ListByUserID(ctx context.Context, userID string, param
 		offset,
 	)
 	if err != nil {
+		br.logger.Error("failed to list books by user", zap.String("user_id", userID), zap.Error(err))
+
 		return nil, 0, err
 	}
 
 	err = br.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM books")
 	if err != nil {
+		br.logger.Error("failed to count books", zap.Error(err))
+
 		return nil, 0, err
 	}
 
@@ -182,6 +197,8 @@ func (br *BookRepository) Update(ctx context.Context, book *domain.Book) error {
 		book.ID,
 	)
 	if err != nil {
+		br.logger.Error("failed to update book", zap.String("book_id", book.ID), zap.Error(err))
+
 		return err
 	}
 
@@ -191,6 +208,8 @@ func (br *BookRepository) Update(ctx context.Context, book *domain.Book) error {
 func (br *BookRepository) Delete(ctx context.Context, id string) error {
 	_, err := br.db.ExecContext(ctx, deleteBookQuery, id)
 	if err != nil {
+		br.logger.Error("failed to delete book", zap.String("book_id", id), zap.Error(err))
+
 		return err
 	}
 

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -25,22 +26,28 @@ var (
 type UserService struct {
 	repo      *repository.UserRepository
 	jwtSecret string
+	logger    *zap.Logger
 }
 
-func NewUserService(userRepo *repository.UserRepository, jwtSecret string) *UserService {
+func NewUserService(userRepo *repository.UserRepository, jwtSecret string, logger *zap.Logger) *UserService {
 	return &UserService{
 		repo:      userRepo,
 		jwtSecret: jwtSecret,
+		logger:    logger,
 	}
 }
 
 func (s *UserService) Register(ctx context.Context, req domain.RegisterRequest) (*domain.AuthResponse, error) {
 	if err := s.validateRegister(ctx, req); err != nil {
+		s.logger.Warn("register rejected", zap.String("email", req.Email), zap.Error(err))
+
 		return nil, err
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
+		s.logger.Error("failed to hash password", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -53,6 +60,8 @@ func (s *UserService) Register(ctx context.Context, req domain.RegisterRequest) 
 	if err = s.repo.Create(ctx, &user); err != nil {
 		return nil, err
 	}
+
+	s.logger.Info("user registered", zap.String("user_id", user.ID), zap.String("username", user.Username))
 
 	return s.createAuthResponse(&user)
 }
@@ -134,6 +143,8 @@ func (s *UserService) Login(ctx context.Context, req domain.LoginRequest) (*doma
 	user, err := s.repo.GetByEmail(ctx, req.Email)
 	if err != nil {
 		if errors.Is(err, repository.ErrUserNotFound) {
+			s.logger.Warn("login failed: user not found", zap.String("email", req.Email))
+
 			return nil, ErrInvalidCredentials
 		}
 
@@ -141,8 +152,12 @@ func (s *UserService) Login(ctx context.Context, req domain.LoginRequest) (*doma
 	}
 
 	if err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
+		s.logger.Warn("login failed: invalid password", zap.String("user_id", user.ID))
+
 		return nil, ErrInvalidCredentials
 	}
+
+	s.logger.Info("user logged in", zap.String("user_id", user.ID))
 
 	return s.createAuthResponse(user)
 }
@@ -184,6 +199,8 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID string, req doma
 	if err = s.repo.Update(ctx, user); err != nil {
 		return nil, err
 	}
+
+	s.logger.Info("user profile updated", zap.String("user_id", user.ID))
 
 	return user, nil
 }

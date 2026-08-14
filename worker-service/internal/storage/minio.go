@@ -8,15 +8,17 @@ import (
 
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
+	"go.uber.org/zap"
 )
 
 type MinIOStorage struct {
 	client         *minio.Client
 	bucket         string
 	publicEndpoint string
+	logger         *zap.Logger
 }
 
-func NewMinIOStorage(endpoint, accessKey, secretKey, bucket, publicEndpoint string, useSSL bool) (*MinIOStorage, error) {
+func NewMinIOStorage(endpoint, accessKey, secretKey, bucket, publicEndpoint string, useSSL bool, logger *zap.Logger) (*MinIOStorage, error) {
 	client, err := minio.New(endpoint, &minio.Options{
 		Creds:  credentials.NewStaticV4(accessKey, secretKey, ""),
 		Secure: useSSL,
@@ -29,6 +31,7 @@ func NewMinIOStorage(endpoint, accessKey, secretKey, bucket, publicEndpoint stri
 		client:         client,
 		bucket:         bucket,
 		publicEndpoint: publicEndpoint,
+		logger:         logger,
 	}, nil
 }
 
@@ -77,8 +80,12 @@ func (s *MinIOStorage) UploadFile(ctx context.Context, objectName string, data [
 		},
 	)
 	if err != nil {
+		s.logger.Error("failed to upload file", zap.String("object", objectName), zap.Error(err))
+
 		return fmt.Errorf("upload object %q: %w", objectName, err)
 	}
+
+	s.logger.Info("file uploaded", zap.String("object", objectName), zap.Int("size", len(data)))
 
 	return nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 const (
@@ -57,12 +58,14 @@ var (
 )
 
 type UserRepository struct {
-	db *sqlx.DB
+	db     *sqlx.DB
+	logger *zap.Logger
 }
 
-func NewUserRepository(db *sqlx.DB) *UserRepository {
+func NewUserRepository(db *sqlx.DB, logger *zap.Logger) *UserRepository {
 	return &UserRepository{
-		db: db,
+		db:     db,
+		logger: logger,
 	}
 }
 
@@ -71,6 +74,8 @@ func (r *UserRepository) Create(ctx context.Context, user *domain.User) error {
 
 	_, err := r.db.ExecContext(ctx, createUserQuery, user.ID, user.Username, user.Email, user.PasswordHash)
 	if err != nil {
+		r.logger.Error("failed to create user", zap.Error(err))
+
 		return err
 	}
 
@@ -84,6 +89,8 @@ func (r *UserRepository) GetByID(ctx context.Context, id string) (*domain.User, 
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
+
+		r.logger.Error("failed to get user by id", zap.String("user_id", id), zap.Error(err))
 
 		return nil, err
 	}
@@ -99,6 +106,8 @@ func (r *UserRepository) GetByUsername(ctx context.Context, username string) (*d
 			return nil, ErrUserNotFound
 		}
 
+		r.logger.Error("failed to get user by username", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -113,6 +122,8 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 			return nil, ErrUserNotFound
 		}
 
+		r.logger.Error("failed to get user by email", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -122,6 +133,8 @@ func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.
 func (r *UserRepository) Update(ctx context.Context, user *domain.User) error {
 	_, err := r.db.ExecContext(ctx, updateUserQuery, user.ID, user.Username, user.Email, user.PasswordHash)
 	if err != nil {
+		r.logger.Error("failed to update user", zap.String("user_id", user.ID), zap.Error(err))
+
 		return err
 	}
 
@@ -132,6 +145,8 @@ func (r *UserRepository) UsernameExists(ctx context.Context, username string) bo
 	var exists bool
 	err := r.db.GetContext(ctx, &exists, existsUserByUsernameQuery, username)
 	if err != nil {
+		r.logger.Error("failed to check username existence", zap.Error(err))
+
 		return false
 	}
 
@@ -142,6 +157,8 @@ func (r *UserRepository) EmailExists(ctx context.Context, email string) bool {
 	var exists bool
 	err := r.db.GetContext(ctx, &exists, existsUserByEmailQuery, email)
 	if err != nil {
+		r.logger.Error("failed to check email existence", zap.Error(err))
+
 		return false
 	}
 
@@ -152,6 +169,8 @@ func (r *UserRepository) GetByIDs(ctx context.Context, ids []string) ([]domain.U
 	var users []domain.User
 
 	if err := r.db.SelectContext(ctx, &users, getUsersByIDsQuery, pq.Array(ids)); err != nil {
+		r.logger.Error("failed to get users by ids", zap.Error(err))
+
 		return nil, err
 	}
 

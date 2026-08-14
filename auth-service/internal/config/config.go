@@ -7,6 +7,7 @@ type Config struct {
 	DatabaseURL string
 	JWTSecret   string
 	ServiceKey  string
+	LogLevel    string
 }
 
 func Load() *Config {
@@ -15,6 +16,7 @@ func Load() *Config {
 		DatabaseURL: os.Getenv("DATABASE_URL"),
 		JWTSecret:   os.Getenv("JWT_SECRET"),
 		ServiceKey:  os.Getenv("SERVICE_KEY"),
+		LogLevel:    os.Getenv("LOG_LEVEL"),
 	}
 
 	normalizeConfig(cfg)
@@ -37,5 +39,9 @@ func normalizeConfig(cfg *Config) {
 
 	if cfg.ServiceKey == "" {
 		cfg.ServiceKey = "serviceKey"
+	}
+
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = "info"
 	}
 }

@@ -12,6 +12,7 @@ type Config struct {
 	MinioPublicEndpoint string
 	MinioUseSSL         bool
 	DatabaseURL         string // URL для подключения к PostgreSQL (books_db)
+	LogLevel            string
 }
 
 func Load() *Config {
@@ -25,6 +26,7 @@ func Load() *Config {
 		MinIOSecret:         os.Getenv("MINIO_SECRET"),
 		MinioBucket:         os.Getenv("MINIO_BUCKET"),
 		DatabaseURL:         os.Getenv("DATABASE_URL"),
+		LogLevel:            os.Getenv("LOG_LEVEL"),
 	}
 
 	cfg.normalize()
@@ -63,5 +65,9 @@ func (c *Config) normalize() {
 
 	if c.DatabaseURL == "" {
 		c.DatabaseURL = "postgres://postgres:postgres@localhost:5433/books?sslmode=disable"
+	}
+
+	if c.LogLevel == "" {
+		c.LogLevel = "info"
 	}
 }

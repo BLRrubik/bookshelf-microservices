@@ -6,6 +6,8 @@ import (
 	"errors"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type VerifyRequest struct {
@@ -38,16 +40,25 @@ type UserPublic struct {
 type AuthClient struct {
 	httpClient *HTTPClient
 	serviceKey string
+	logger     *zap.Logger
 }
 
-func NewAuthClient(baseURL string, timeout time.Duration, maxRetries int, retryDelay time.Duration, serviceKey string) *AuthClient {
+func NewAuthClient(
+	baseURL string,
+	timeout time.Duration,
+	maxRetries int,
+	retryDelay time.Duration,
+	serviceKey string,
+	logger *zap.Logger,
+) *AuthClient {
 	return &AuthClient{
 		httpClient: NewHTTPClient(baseURL, HTTPClientConfig{
 			Timeout:    timeout,
 			MaxRetries: maxRetries,
 			RetryDelay: retryDelay,
-		}),
+		}, logger),
 		serviceKey: serviceKey,
+		logger:     logger,
 	}
 }
 
@@ -69,6 +80,8 @@ func (c *AuthClient) VerifyToken(ctx context.Context, token string) (*VerifyResp
 
 	switch {
 	case resp.StatusCode >= 500:
+		c.logger.Error("verify token: auth-service internal error", zap.Int("status", resp.StatusCode))
+
 		return nil, ErrInternalError
 	case resp.StatusCode >= 400:
 		return nil, ErrRequestError
@@ -76,6 +89,8 @@ func (c *AuthClient) VerifyToken(ctx context.Context, token string) (*VerifyResp
 
 	var response VerifyResponse
 	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		c.logger.Error("verify token: failed to decode response", zap.Error(err))
+
 		return nil, err
 	}
 
@@ -100,6 +115,8 @@ func (c *AuthClient) GetUsersByIDs(ctx context.Context, ids []string) ([]UserPub
 
 	switch {
 	case resp.StatusCode >= 500:
+		c.logger.Error("get users by ids: auth-service internal error", zap.Int("status", resp.StatusCode))
+
 		return nil, ErrInternalError
 	case resp.StatusCode >= 400:
 		return nil, ErrRequestError
@@ -107,6 +124,8 @@ func (c *AuthClient) GetUsersByIDs(ctx context.Context, ids []string) ([]UserPub
 
 	var response []UserPublic
 	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		c.logger.Error("get users by ids: failed to decode response", zap.Error(err))
+
 		return nil, err
 	}
 

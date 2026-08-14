@@ -13,6 +13,7 @@ type Config struct {
 	MinioBucket         string // bookshelf-covers
 	MinIOPublicEndpoint string // http://localhost:9000
 	MinIOUseSSL         bool   // false для локальной разработки
+	LogLevel            string
 }
 
 func Load() *Config {
@@ -21,6 +22,7 @@ func Load() *Config {
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
 		AuthServiceURL: os.Getenv("AUTH_SERVICE_URL"),
 		ServiceKey:     os.Getenv("SERVICE_KEY"),
+		LogLevel:       os.Getenv("LOG_LEVEL"),
 	}
 
 	normalizeConfig(cfg)
@@ -63,5 +65,9 @@ func normalizeConfig(cfg *Config) {
 
 	if cfg.MinIOSecretKey == "" {
 		cfg.MinIOSecretKey = "minioadmin"
+	}
+
+	if cfg.LogLevel == "" {
+		cfg.LogLevel = "info"
 	}
 }

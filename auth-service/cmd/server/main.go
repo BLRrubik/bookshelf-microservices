@@ -3,10 +3,10 @@ package main
 import (
 	"bookshelf/auth-service/internal/config"
 	"bookshelf/auth-service/internal/handler"
+	"bookshelf/auth-service/internal/logger"
 	"bookshelf/auth-service/internal/repository"
 	"bookshelf/auth-service/internal/service"
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -18,24 +18,32 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 func main() {
 	cfg := config.Load()
 
+	log := logger.New(cfg.LogLevel)
+	defer log.Sync()
+
+	log.Info("config loaded", zap.String("port", cfg.Port))
+
 	db, err := sqlx.Connect("postgres", cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to connect to database", zap.Error(err))
 	}
 	defer db.Close()
 
-	userRepo := repository.NewUserRepository(db)
-	userService := service.NewUserService(userRepo, cfg.JWTSecret)
-	handlers := handler.NewHandler(userService, db, cfg.JWTSecret)
+	log.Info("connected to database")
+
+	userRepo := repository.NewUserRepository(db, log.Named("user_repository"))
+	userService := service.NewUserService(userRepo, cfg.JWTSecret, log.Named("user_service"))
+	handlers := handler.NewHandler(userService, db, cfg.JWTSecret, log.Named("handler"))
 
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
+	r.Use(handler.RequestLogger(log.Named("http")))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(cors.Handler(cors.Options{
@@ -58,8 +66,10 @@ func main() {
 	}
 
 	go func() {
-		if err = server.ListenAndServe(); err != nil {
-			log.Fatal(err)
+		log.Info("server listening", zap.String("addr", cfg.Port))
+
+		if err = server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("server failed", zap.Error(err))
 		}
 	}()
 
@@ -68,10 +78,14 @@ func main() {
 
 	<-termChan
 
+	log.Info("shutdown signal received")
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err = server.Shutdown(ctx); err != nil {
-		log.Fatal(err)
+		log.Error("graceful shutdown failed", zap.Error(err))
+	} else {
+		log.Info("graceful shutdown complete")
 	}
 }

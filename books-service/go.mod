@@ -9,7 +9,10 @@ require (
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/minio/minio-go/v7 v7.2.1
+	go.uber.org/zap v1.27.0
 )
+
+require go.uber.org/multierr v1.10.0 // indirect
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

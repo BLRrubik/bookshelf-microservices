@@ -6,6 +6,8 @@ import (
 	"bookshelf/books-service/internal/utils"
 	"context"
 	"errors"
+
+	"go.uber.org/zap"
 )
 
 var (
@@ -18,11 +20,13 @@ var (
 
 type BookService struct {
 	bookRepo *repository.BookRepository
+	logger   *zap.Logger
 }
 
-func NewBookService(bookRepo *repository.BookRepository) *BookService {
+func NewBookService(bookRepo *repository.BookRepository, logger *zap.Logger) *BookService {
 	return &BookService{
 		bookRepo: bookRepo,
+		logger:   logger,
 	}
 }
 
@@ -48,6 +52,8 @@ func (s *BookService) Create(ctx context.Context, userID string, req domain.Crea
 	if err := s.bookRepo.Create(ctx, &book); err != nil {
 		return nil, err
 	}
+
+	s.logger.Info("book created", zap.String("book_id", book.ID), zap.String("user_id", userID))
 
 	return &book, nil
 }
@@ -112,6 +118,8 @@ func (s *BookService) Update(
 		return nil, err
 	}
 
+	s.logger.Info("book updated", zap.String("book_id", book.ID), zap.String("user_id", userID))
+
 	//creator, err := s.userRepo.GetByID(ctx, book.UserID)
 	//if err != nil {
 	//	return nil, ErrBookNotFound
@@ -132,5 +140,11 @@ func (s *BookService) Delete(ctx context.Context, userID string, bookID string) 
 		return ErrNotBookOwner
 	}
 
-	return s.bookRepo.Delete(ctx, bookID)
+	if err = s.bookRepo.Delete(ctx, bookID); err != nil {
+		return err
+	}
+
+	s.logger.Info("book deleted", zap.String("book_id", bookID), zap.String("user_id", userID))
+
+	return nil
 }

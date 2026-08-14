@@ -4,10 +4,10 @@ import (
 	"bookshelf/books-service/internal/client"
 	"bookshelf/books-service/internal/config"
 	"bookshelf/books-service/internal/handler"
+	"bookshelf/books-service/internal/logger"
 	"bookshelf/books-service/internal/repository"
 	"bookshelf/books-service/internal/service"
 	"context"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -19,25 +19,35 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 func main() {
 	cfg := config.Load()
 
+	log := logger.New(cfg.LogLevel)
+	defer log.Sync()
+
+	log.Info("config loaded", zap.String("port", cfg.Port))
+
 	db, err := sqlx.Connect("postgres", cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to connect to database", zap.Error(err))
 	}
 	defer db.Close()
 
-	rabbitMQClient, err := client.NewRabbitMQClient("amqp://guest:guest@localhost:5672")
+	log.Info("connected to database")
+
+	rabbitMQClient, err := client.NewRabbitMQClient("amqp://guest:guest@localhost:5672", log.Named("rabbitmq"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to connect to rabbitmq", zap.Error(err))
 	}
 	defer rabbitMQClient.Close()
 
+	log.Info("connected to rabbitmq")
+
 	if err = rabbitMQClient.DeclareQueue(client.QueueImageCompress); err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to declare queue", zap.Error(err))
 	}
 
 	minioClient, err := client.NewMinIOClient(
@@ -47,10 +57,13 @@ func main() {
 		cfg.MinioBucket,
 		cfg.MinIOPublicEndpoint,
 		cfg.MinIOUseSSL,
+		log.Named("minio"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to create minio client", zap.Error(err))
 	}
+
+	log.Info("connected to minio")
 
 	_ = minioClient
 
@@ -60,15 +73,16 @@ func main() {
 		5,
 		time.Millisecond*100,
 		cfg.ServiceKey,
+		log.Named("auth_client"),
 	)
 
-	repos := repository.New(db)
-	services := service.New(repos, authClient, minioClient, rabbitMQClient)
-	handlers := handler.NewHandler(services, db, authClient, rabbitMQClient, minioClient)
+	repos := repository.New(db, log.Named("repository"))
+	services := service.New(repos, authClient, minioClient, rabbitMQClient, log.Named("service"))
+	handlers := handler.NewHandler(services, db, authClient, rabbitMQClient, minioClient, log.Named("handler"))
 
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
+	r.Use(handler.RequestLogger(log.Named("http")))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(cors.Handler(cors.Options{
@@ -91,8 +105,10 @@ func main() {
 	}
 
 	go func() {
-		if err = server.ListenAndServe(); err != nil {
-			log.Fatal(err)
+		log.Info("server listening", zap.String("addr", cfg.Port))
+
+		if err = server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("server failed", zap.Error(err))
 		}
 	}()
 
@@ -101,10 +117,14 @@ func main() {
 
 	<-termChan
 
+	log.Info("shutdown signal received")
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err = server.Shutdown(ctx); err != nil {
-		log.Fatal(err)
+		log.Error("graceful shutdown failed", zap.Error(err))
+	} else {
+		log.Info("graceful shutdown complete")
 	}
 }

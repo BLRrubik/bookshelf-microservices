@@ -4,10 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"log/slog"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 )
 
 const QueueImageCompress = "image_compress"
@@ -22,9 +21,10 @@ type RabbitMQClient struct {
 	conn    *amqp.Connection
 	channel *amqp.Channel
 	queue   string
+	logger  *zap.Logger
 }
 
-func NewRabbitMQClient(url string) (*RabbitMQClient, error) {
+func NewRabbitMQClient(url string, logger *zap.Logger) (*RabbitMQClient, error) {
 	conn, err := amqp.Dial(url)
 	if err != nil {
 		return nil, err
@@ -38,6 +38,7 @@ func NewRabbitMQClient(url string) (*RabbitMQClient, error) {
 	return &RabbitMQClient{
 		conn:    conn,
 		channel: ch,
+		logger:  logger,
 	}, nil
 }
 
@@ -75,14 +76,22 @@ func (c *RabbitMQClient) HealthCheck() error {
 }
 
 func (c *RabbitMQClient) PublishImageCompress(ctx context.Context, msg ImageCompressMessage) error {
-	slog.Info(fmt.Sprintf("Published image compress message for book %s", msg.BookID))
-
 	bytes, err := json.Marshal(msg)
 	if err != nil {
+		c.logger.Error("failed to marshal image compress message", zap.String("book_id", msg.BookID), zap.Error(err))
+
 		return err
 	}
 
-	return c.publish(ctx, c.queue, bytes)
+	if err = c.publish(ctx, c.queue, bytes); err != nil {
+		c.logger.Error("failed to publish image compress message", zap.String("book_id", msg.BookID), zap.Error(err))
+
+		return err
+	}
+
+	c.logger.Info("published image compress message", zap.String("book_id", msg.BookID), zap.String("cover_id", msg.CoverID))
+
+	return nil
 }
 
 func (c *RabbitMQClient) publish(ctx context.Context, queue string, body []byte) error {

@@ -8,6 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 )
 
 const (
@@ -38,11 +39,12 @@ DELETE FROM covers WHERE book_id = $1;
 )
 
 type CoverRepository struct {
-	db *sqlx.DB
+	db     *sqlx.DB
+	logger *zap.Logger
 }
 
-func NewCoverRepository(db *sqlx.DB) *CoverRepository {
-	return &CoverRepository{db: db}
+func NewCoverRepository(db *sqlx.DB, logger *zap.Logger) *CoverRepository {
+	return &CoverRepository{db: db, logger: logger}
 }
 
 func (r *CoverRepository) Create(ctx context.Context, cover *domain.Cover) error {
@@ -60,6 +62,8 @@ func (r *CoverRepository) Create(ctx context.Context, cover *domain.Cover) error
 		cover.Error,
 	)
 	if err != nil {
+		r.logger.Error("failed to create cover", zap.String("book_id", cover.BookID), zap.Error(err))
+
 		return err
 	}
 
@@ -73,6 +77,9 @@ func (r *CoverRepository) GetByBookID(ctx context.Context, bookID string) (*doma
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrCoverNotFound
 		}
+
+		r.logger.Error("failed to get cover by book id", zap.String("book_id", bookID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -94,6 +101,8 @@ func (r *CoverRepository) UpdateStatus(
 
 	_, err := r.db.ExecContext(ctx, query, status, coverPath, thumbPath, errorMsg, id)
 	if err != nil {
+		r.logger.Error("failed to update cover status", zap.String("cover_id", id), zap.Error(err))
+
 		return err
 	}
 
@@ -109,6 +118,8 @@ func (r *CoverRepository) UpdateBookCover(
 ) error {
 	_, err := r.db.ExecContext(ctx, updateBookCoverQuery, bookID, status, coverURL, thumbURL)
 	if err != nil {
+		r.logger.Error("failed to update book cover", zap.String("book_id", bookID), zap.Error(err))
+
 		return err
 	}
 
@@ -118,6 +129,8 @@ func (r *CoverRepository) UpdateBookCover(
 func (r *CoverRepository) DeleteByBookID(ctx context.Context, bookID string) error {
 	_, err := r.db.ExecContext(ctx, deleteCoverByBookIdQuery, bookID)
 	if err != nil {
+		r.logger.Error("failed to delete cover", zap.String("book_id", bookID), zap.Error(err))
+
 		return err
 	}
 

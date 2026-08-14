@@ -4,12 +4,11 @@ import (
 	"bookshelf/worker-service/internal/api"
 	"bookshelf/worker-service/internal/config"
 	"bookshelf/worker-service/internal/handler"
+	"bookshelf/worker-service/internal/logger"
 	"bookshelf/worker-service/internal/queue"
 	"bookshelf/worker-service/internal/repository"
 	"bookshelf/worker-service/internal/storage"
 	"context"
-	"log"
-	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,27 +20,34 @@ import (
 	"github.com/go-chi/cors"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 func main() {
-	slog.Info("worker-service starting...")
+	cfg := config.Load()
+
+	log := logger.New(cfg.LogLevel)
+	defer log.Sync()
+
+	log.Info("config loaded", zap.String("port", cfg.Port))
 
 	ctx, cancel := context.WithCancel(context.Background())
 
-	slog.Info("Loading configuration...")
-	cfg := config.Load()
-
-	consumer, err := queue.NewConsumer(cfg.RabbitMQURL)
+	consumer, err := queue.NewConsumer(cfg.RabbitMQURL, log.Named("consumer"))
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to connect to rabbitmq", zap.Error(err))
 	}
 	defer consumer.Close()
 
+	log.Info("connected to rabbitmq")
+
 	db, err := sqlx.Connect("postgres", cfg.DatabaseURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to connect to database", zap.Error(err))
 	}
 	defer db.Close()
+
+	log.Info("connected to database")
 
 	minioStorage, err := storage.NewMinIOStorage(
 		cfg.MinIOURL,
@@ -50,26 +56,31 @@ func main() {
 		cfg.MinioBucket,
 		cfg.MinioPublicEndpoint,
 		cfg.MinioUseSSL,
+		log.Named("minio"),
 	)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to create minio client", zap.Error(err))
 	}
 
-	repo := repository.NewCoverRepository(db)
+	log.Info("connected to minio")
 
-	imageHandler := handler.NewImageHandler(minioStorage, repo)
+	repo := repository.NewCoverRepository(db, log.Named("cover_repository"))
+
+	imageHandler := handler.NewImageHandler(minioStorage, repo, log.Named("image_handler"))
 
 	consumer.RegisterHandler("image_compress", func(body []byte) error {
 		return imageHandler.HandleImageCompress(body)
 	})
 
 	if err = consumer.Start(ctx); err != nil {
-		log.Fatal(err)
+		log.Fatal("failed to start consumer", zap.Error(err))
 	}
+
+	log.Info("consumer started")
 
 	r := chi.NewRouter()
 
-	r.Use(middleware.Logger)
+	r.Use(api.RequestLogger(log.Named("http")))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(cors.Handler(cors.Options{
@@ -95,8 +106,10 @@ func main() {
 	}
 
 	go func() {
-		if err = server.ListenAndServe(); err != nil {
-			log.Fatal(err)
+		log.Info("server listening", zap.String("addr", cfg.Port))
+
+		if err = server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal("server failed", zap.Error(err))
 		}
 	}()
 
@@ -106,18 +119,22 @@ func main() {
 
 	<-term
 
+	log.Info("shutdown signal received")
+
 	cancel()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer shutdownCancel()
 
 	if err = consumer.Wait(shutdownCtx); err != nil {
-		log.Printf("consumer shutdown wait error: %v", err)
+		log.Error("consumer shutdown wait error", zap.Error(err))
 	}
 
 	consumer.Close()
 
 	if err = server.Shutdown(shutdownCtx); err != nil {
-		log.Printf("shutdown error: %v", err)
+		log.Error("shutdown error", zap.Error(err))
+	} else {
+		log.Info("graceful shutdown complete")
 	}
 }

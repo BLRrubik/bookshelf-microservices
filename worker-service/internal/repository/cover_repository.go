@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
+	"go.uber.org/zap"
 )
 
 const (
@@ -22,11 +23,12 @@ DELETE FROM covers WHERE book_id = $1;
 )
 
 type CoverRepository struct {
-	db *sqlx.DB
+	db     *sqlx.DB
+	logger *zap.Logger
 }
 
-func NewCoverRepository(db *sqlx.DB) *CoverRepository {
-	return &CoverRepository{db: db}
+func NewCoverRepository(db *sqlx.DB, logger *zap.Logger) *CoverRepository {
+	return &CoverRepository{db: db, logger: logger}
 }
 
 func (r *CoverRepository) UpdateStatus(
@@ -44,6 +46,8 @@ func (r *CoverRepository) UpdateStatus(
 
 	_, err := r.db.ExecContext(ctx, query, status, coverPath, thumbPath, errorMsg, id)
 	if err != nil {
+		r.logger.Error("failed to update cover status", zap.String("cover_id", id), zap.Error(err))
+
 		return err
 	}
 
@@ -59,6 +63,8 @@ func (r *CoverRepository) UpdateBookCover(
 ) error {
 	_, err := r.db.ExecContext(ctx, updateBookCoverQuery, bookID, status, coverURL, thumbURL)
 	if err != nil {
+		r.logger.Error("failed to update book cover", zap.String("book_id", bookID), zap.Error(err))
+
 		return err
 	}
 

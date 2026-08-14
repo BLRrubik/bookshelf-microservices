@@ -6,15 +6,19 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type InternalHandler struct {
 	userService *service.UserService
+	logger      *zap.Logger
 }
 
-func NewInternalHandler(svc *service.UserService) *InternalHandler {
+func NewInternalHandler(svc *service.UserService, logger *zap.Logger) *InternalHandler {
 	return &InternalHandler{
 		userService: svc,
+		logger:      logger,
 	}
 }
 
@@ -52,6 +56,7 @@ func (h *InternalHandler) GetUsersByIDs(w http.ResponseWriter, r *http.Request) 
 
 	users, err := h.userService.GetUsersByIDs(r.Context(), req.IDs)
 	if err != nil {
+		h.logger.Error("get users by ids failed", zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, err.Error())
 
 		return

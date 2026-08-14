@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"image"
-	"log/slog"
 
 	"github.com/disintegration/imaging"
 	"go.uber.org/zap"
@@ -32,12 +31,14 @@ type ImageCompressMessage struct {
 type ImageHandler struct {
 	storage *storage.MinIOStorage
 	repo    *repository.CoverRepository
+	logger  *zap.Logger
 }
 
-func NewImageHandler(storage *storage.MinIOStorage, repo *repository.CoverRepository) *ImageHandler {
+func NewImageHandler(storage *storage.MinIOStorage, repo *repository.CoverRepository, logger *zap.Logger) *ImageHandler {
 	return &ImageHandler{
 		storage: storage,
 		repo:    repo,
+		logger:  logger,
 	}
 }
 
@@ -45,23 +46,25 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 	ctx := context.Background()
 	var msg ImageCompressMessage
 	if err := json.Unmarshal(body, &msg); err != nil {
-		slog.Error("Failed to unmarshal image compress message", zap.String("body", string(body)), zap.Error(err))
+		h.logger.Error("failed to unmarshal image compress message", zap.ByteString("body", body), zap.Error(err))
 
 		return err
 	}
 
+	h.logger.Info("processing image compress message", zap.String("book_id", msg.BookID), zap.String("cover_id", msg.CoverID))
+
 	fileBytes, err := h.storage.GetFile(ctx, msg.OriginalPath)
 	if err != nil {
-		slog.Error("Failed to get file", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		h.logger.Error("failed to get file", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 
 		return fmt.Errorf("%w, failed to get file: %w", queue.ErrTemporary, err)
 	}
 
 	img, err := imaging.Decode(bytes.NewReader(fileBytes))
 	if err != nil {
-		slog.Error("Failed to decode image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		h.logger.Error("failed to decode image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 		if err = h.repo.UpdateStatus(ctx, msg.CoverID, "failed", "", "", err.Error()); err != nil {
-			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+			h.logger.Error("failed to update status", zap.String("cover_id", msg.CoverID), zap.Error(err))
 		}
 
 		return nil
@@ -69,9 +72,9 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 
 	coverKey := fmt.Sprintf("covers/%s/cover.jpg", msg.BookID)
 	if err = h.processImage(ctx, img, CoverWidth, CoverHeight, JPEGQuality, coverKey); err != nil {
-		slog.Error("Failed to process image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		h.logger.Error("failed to process cover image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 		if err = h.repo.UpdateStatus(ctx, msg.CoverID, "failed", "", "", err.Error()); err != nil {
-			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+			h.logger.Error("failed to update status", zap.String("cover_id", msg.CoverID), zap.Error(err))
 		}
 
 		return nil
@@ -79,9 +82,9 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 
 	thumbKey := fmt.Sprintf("covers/%s/thumb.jpg", msg.BookID)
 	if err = h.processImage(ctx, img, ThumbWidth, ThumbHeight, JPEGQuality, thumbKey); err != nil {
-		slog.Error("Failed to process image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		h.logger.Error("failed to process thumbnail image", zap.String("original_path", msg.OriginalPath), zap.Error(err))
 		if err = h.repo.UpdateStatus(ctx, msg.CoverID, "failed", "", "", err.Error()); err != nil {
-			slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+			h.logger.Error("failed to update status", zap.String("cover_id", msg.CoverID), zap.Error(err))
 		}
 
 		return nil
@@ -95,7 +98,7 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 		thumbKey,
 		"",
 	); err != nil {
-		slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		h.logger.Error("failed to update status", zap.String("cover_id", msg.CoverID), zap.Error(err))
 	}
 
 	if err = h.repo.UpdateBookCover(
@@ -105,8 +108,10 @@ func (h *ImageHandler) HandleImageCompress(body []byte) error {
 		h.storage.GetFileURL(coverKey),
 		h.storage.GetFileURL(thumbKey),
 	); err != nil {
-		slog.Error("Failed to update status", zap.String("original_path", msg.OriginalPath), zap.Error(err))
+		h.logger.Error("failed to update book cover", zap.String("book_id", msg.BookID), zap.Error(err))
 	}
+
+	h.logger.Info("image compress finished", zap.String("book_id", msg.BookID), zap.String("cover_id", msg.CoverID))
 
 	return nil
 }
@@ -116,13 +121,13 @@ func (h *ImageHandler) processImage(ctx context.Context, img image.Image, width,
 
 	var buf bytes.Buffer
 	if err := imaging.Encode(&buf, data, imaging.JPEG, imaging.JPEGQuality(quality)); err != nil {
-		slog.Error("Failed to encode image", zap.Error(err))
+		h.logger.Error("failed to encode image", zap.Error(err))
 
 		return err
 	}
 
 	if err := h.storage.UploadFile(ctx, objectName, buf.Bytes(), "image/jpg"); err != nil {
-		slog.Error("Failed to upload image", zap.String("object_name", objectName), zap.Error(err))
+		h.logger.Error("failed to upload image", zap.String("object_name", objectName), zap.Error(err))
 
 		return err
 	}

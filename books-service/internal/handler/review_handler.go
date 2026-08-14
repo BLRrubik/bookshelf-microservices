@@ -8,15 +8,18 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type ReviewHandler struct {
-	svc *service.ReviewService
+	svc    *service.ReviewService
+	logger *zap.Logger
 }
 
-func NewReviewHandler(svc *service.ReviewService) *ReviewHandler {
+func NewReviewHandler(svc *service.ReviewService, logger *zap.Logger) *ReviewHandler {
 	return &ReviewHandler{
-		svc: svc,
+		svc:    svc,
+		logger: logger,
 	}
 }
 
@@ -32,6 +35,7 @@ func (h *ReviewHandler) List(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		h.logger.Error("list reviews failed", zap.String("book_id", bookID), zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, err.Error())
 
 		return
@@ -51,6 +55,7 @@ func (h *ReviewHandler) GetReview(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		h.logger.Error("get review failed", zap.String("review_id", reviewID), zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, err.Error())
 
 		return
@@ -84,6 +89,7 @@ func (h *ReviewHandler) Create(w http.ResponseWriter, r *http.Request) {
 			errors.Is(err, service.ErrAlreadyReviewed):
 			writeError(w, r, http.StatusConflict, "cannot create review")
 		default:
+			h.logger.Error("create review failed", zap.String("book_id", bookID), zap.String("user_id", userID), zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, err.Error())
 		}
 
@@ -113,6 +119,7 @@ func (h *ReviewHandler) Update(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrNotReviewOwner):
 			writeError(w, r, http.StatusForbidden, "not review owner")
 		default:
+			h.logger.Error("update review failed", zap.String("review_id", reviewID), zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, err.Error())
 		}
 
@@ -133,6 +140,7 @@ func (h *ReviewHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrNotReviewOwner):
 			writeError(w, r, http.StatusForbidden, "not review owner")
 		default:
+			h.logger.Error("delete review failed", zap.String("review_id", reviewID), zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, err.Error())
 		}
 

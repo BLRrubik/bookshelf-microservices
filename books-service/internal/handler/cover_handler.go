@@ -4,19 +4,19 @@ import (
 	"bookshelf/books-service/internal/domain"
 	"bookshelf/books-service/internal/service"
 	"errors"
-	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
 
 type CoverHandler struct {
-	svc *service.CoverService
+	svc    *service.CoverService
+	logger *zap.Logger
 }
 
-func NewCoverHandler(svc *service.CoverService) *CoverHandler {
-	return &CoverHandler{svc: svc}
+func NewCoverHandler(svc *service.CoverService, logger *zap.Logger) *CoverHandler {
+	return &CoverHandler{svc: svc, logger: logger}
 }
 
 func (h *CoverHandler) UploadBookCover(w http.ResponseWriter, r *http.Request) {
@@ -24,7 +24,7 @@ func (h *CoverHandler) UploadBookCover(w http.ResponseWriter, r *http.Request) {
 	defer body.Close()
 
 	if err := r.ParseMultipartForm(5 << 20); err != nil {
-		slog.Error(fmt.Sprintf("failed to parse multipart form: %s", err))
+		h.logger.Warn("failed to parse multipart form", zap.Error(err))
 		writeError(w, r, http.StatusBadRequest, "failed to parse multipart form")
 
 		return
@@ -32,7 +32,7 @@ func (h *CoverHandler) UploadBookCover(w http.ResponseWriter, r *http.Request) {
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
-		slog.Error(fmt.Sprintf("failed to parse form file: %s", err))
+		h.logger.Warn("failed to parse form file", zap.Error(err))
 		writeError(w, r, http.StatusBadRequest, "failed to parse form file")
 
 		return
@@ -50,6 +50,7 @@ func (h *CoverHandler) UploadBookCover(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrForbidden):
 			writeError(w, r, http.StatusForbidden, "forbidden")
 		default:
+			h.logger.Error("upload cover failed", zap.String("book_id", bookID), zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, "internal server error")
 		}
 
@@ -64,6 +65,7 @@ func (h *CoverHandler) GetBookCover(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.svc.GetCover(r.Context(), bookID)
 	if err != nil {
+		h.logger.Error("get cover failed", zap.String("book_id", bookID), zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, "internal server error")
 
 		return
@@ -87,6 +89,7 @@ func (h *CoverHandler) GetBookCoverStatus(w http.ResponseWriter, r *http.Request
 
 	resp, err := h.svc.GetCoverStatus(r.Context(), bookID)
 	if err != nil {
+		h.logger.Error("get cover status failed", zap.String("book_id", bookID), zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, "internal server error")
 
 		return
@@ -108,6 +111,7 @@ func (h *CoverHandler) DeleteBookCover(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrForbidden):
 			writeError(w, r, http.StatusForbidden, "forbidden")
 		default:
+			h.logger.Error("delete cover failed", zap.String("book_id", bookID), zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, "internal server error")
 		}
 

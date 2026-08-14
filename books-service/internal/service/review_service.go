@@ -7,6 +7,8 @@ import (
 	"bookshelf/books-service/internal/utils"
 	"context"
 	"errors"
+
+	"go.uber.org/zap"
 )
 
 var (
@@ -21,17 +23,20 @@ type ReviewService struct {
 	reviewRepo *repository.ReviewRepository
 	bookRepo   *repository.BookRepository
 	authClient *client.AuthClient
+	logger     *zap.Logger
 }
 
 func NewReviewService(
 	reviewRepo *repository.ReviewRepository,
 	bookRepo *repository.BookRepository,
 	authClient *client.AuthClient,
+	logger *zap.Logger,
 ) *ReviewService {
 	return &ReviewService{
 		reviewRepo: reviewRepo,
 		bookRepo:   bookRepo,
 		authClient: authClient,
+		logger:     logger,
 	}
 }
 
@@ -79,6 +84,8 @@ func (s *ReviewService) Create(
 		return nil, err
 	}
 
+	s.logger.Info("review created", zap.String("review_id", review.ID), zap.String("book_id", bookID), zap.String("user_id", userID))
+
 	reviewResponse := review.ToResponse()
 
 	return &reviewResponse, nil
@@ -119,6 +126,10 @@ func (s *ReviewService) ListByBook(ctx context.Context, bookID string, page, lim
 
 	usersMap := make(map[string]client.UserPublic, len(users))
 	usersSummary, err := s.authClient.GetUsersByIDs(ctx, users)
+	if err != nil {
+		s.logger.Warn("failed to fetch review authors", zap.String("book_id", bookID), zap.Error(err))
+	}
+
 	for _, user := range usersSummary {
 		usersMap[user.ID] = user
 	}
@@ -183,6 +194,8 @@ func (s *ReviewService) Update(
 		return nil, err
 	}
 
+	s.logger.Info("review updated", zap.String("review_id", review.ID), zap.String("user_id", userID))
+
 	return review, nil
 }
 
@@ -216,5 +229,11 @@ func (s *ReviewService) Delete(ctx context.Context, userID string, reviewID stri
 		return ErrNotReviewOwner
 	}
 
-	return s.reviewRepo.Delete(ctx, reviewID)
+	if err = s.reviewRepo.Delete(ctx, reviewID); err != nil {
+		return err
+	}
+
+	s.logger.Info("review deleted", zap.String("review_id", reviewID), zap.String("user_id", userID))
+
+	return nil
 }

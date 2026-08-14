@@ -9,6 +9,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"go.uber.org/zap"
 )
 
 var ErrForbidden = errors.New("forbidden")
@@ -18,6 +20,7 @@ type CoverService struct {
 	bookRepo     *repository.BookRepository
 	minioClient  *client.MinIOClient
 	rabbitClient *client.RabbitMQClient
+	logger       *zap.Logger
 }
 
 func NewCoverService(
@@ -25,12 +28,14 @@ func NewCoverService(
 	bookRepo *repository.BookRepository,
 	minioClient *client.MinIOClient,
 	rabbitClient *client.RabbitMQClient,
+	logger *zap.Logger,
 ) *CoverService {
 	return &CoverService{
 		coverRepo:    coverRepo,
 		bookRepo:     bookRepo,
 		minioClient:  minioClient,
 		rabbitClient: rabbitClient,
+		logger:       logger,
 	}
 }
 
@@ -97,6 +102,8 @@ func (s *CoverService) UploadCover(
 	}); err != nil {
 		return nil, err
 	}
+
+	s.logger.Info("cover upload accepted", zap.String("book_id", bookID), zap.String("cover_id", cover.ID))
 
 	return &domain.CoverUploadResponse{
 		CoverID: cover.ID,
@@ -194,5 +201,11 @@ func (s *CoverService) DeleteCover(ctx context.Context, userID, bookID string) e
 		return err
 	}
 
-	return s.coverRepo.UpdateBookCover(ctx, bookID, domain.CoverStatusNone, "", "")
+	if err = s.coverRepo.UpdateBookCover(ctx, bookID, domain.CoverStatusNone, "", ""); err != nil {
+		return err
+	}
+
+	s.logger.Info("cover deleted", zap.String("book_id", bookID), zap.String("user_id", userID))
+
+	return nil
 }
