@@ -50,7 +50,6 @@ func (h *CoverHandler) UploadBookCover(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrForbidden):
 			writeError(w, r, http.StatusForbidden, "forbidden")
 		default:
-			h.logger.Error("upload cover failed", zap.String("book_id", bookID), zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, "internal server error")
 		}
 
@@ -65,7 +64,6 @@ func (h *CoverHandler) GetBookCover(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.svc.GetCover(r.Context(), bookID)
 	if err != nil {
-		h.logger.Error("get cover failed", zap.String("book_id", bookID), zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, "internal server error")
 
 		return
@@ -89,7 +87,6 @@ func (h *CoverHandler) GetBookCoverStatus(w http.ResponseWriter, r *http.Request
 
 	resp, err := h.svc.GetCoverStatus(r.Context(), bookID)
 	if err != nil {
-		h.logger.Error("get cover status failed", zap.String("book_id", bookID), zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, "internal server error")
 
 		return
@@ -111,7 +108,6 @@ func (h *CoverHandler) DeleteBookCover(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrForbidden):
 			writeError(w, r, http.StatusForbidden, "forbidden")
 		default:
-			h.logger.Error("delete cover failed", zap.String("book_id", bookID), zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, "internal server error")
 		}
 

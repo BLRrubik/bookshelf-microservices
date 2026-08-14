@@ -5,15 +5,15 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 )
 
 const (
 	createCoverQuery = `
-INSERT INTO covers 
+INSERT INTO covers
 (id, book_id, status, original_path, cover_path, thumb_path, error)
 VALUES ($1, $2, $3, $4, $5, $6, $7)
 `
@@ -39,12 +39,11 @@ DELETE FROM covers WHERE book_id = $1;
 )
 
 type CoverRepository struct {
-	db     *sqlx.DB
-	logger *zap.Logger
+	db *sqlx.DB
 }
 
-func NewCoverRepository(db *sqlx.DB, logger *zap.Logger) *CoverRepository {
-	return &CoverRepository{db: db, logger: logger}
+func NewCoverRepository(db *sqlx.DB) *CoverRepository {
+	return &CoverRepository{db: db}
 }
 
 func (r *CoverRepository) Create(ctx context.Context, cover *domain.Cover) error {
@@ -62,9 +61,7 @@ func (r *CoverRepository) Create(ctx context.Context, cover *domain.Cover) error
 		cover.Error,
 	)
 	if err != nil {
-		r.logger.Error("failed to create cover", zap.String("book_id", cover.BookID), zap.Error(err))
-
-		return err
+		return fmt.Errorf("create cover: %w", err)
 	}
 
 	return nil
@@ -78,9 +75,7 @@ func (r *CoverRepository) GetByBookID(ctx context.Context, bookID string) (*doma
 			return nil, ErrCoverNotFound
 		}
 
-		r.logger.Error("failed to get cover by book id", zap.String("book_id", bookID), zap.Error(err))
-
-		return nil, err
+		return nil, fmt.Errorf("get cover by book id: %w", err)
 	}
 
 	return &cover, nil
@@ -101,9 +96,7 @@ func (r *CoverRepository) UpdateStatus(
 
 	_, err := r.db.ExecContext(ctx, query, status, coverPath, thumbPath, errorMsg, id)
 	if err != nil {
-		r.logger.Error("failed to update cover status", zap.String("cover_id", id), zap.Error(err))
-
-		return err
+		return fmt.Errorf("update cover status: %w", err)
 	}
 
 	return nil
@@ -118,9 +111,7 @@ func (r *CoverRepository) UpdateBookCover(
 ) error {
 	_, err := r.db.ExecContext(ctx, updateBookCoverQuery, bookID, status, coverURL, thumbURL)
 	if err != nil {
-		r.logger.Error("failed to update book cover", zap.String("book_id", bookID), zap.Error(err))
-
-		return err
+		return fmt.Errorf("update book cover: %w", err)
 	}
 
 	return nil
@@ -129,9 +120,7 @@ func (r *CoverRepository) UpdateBookCover(
 func (r *CoverRepository) DeleteByBookID(ctx context.Context, bookID string) error {
 	_, err := r.db.ExecContext(ctx, deleteCoverByBookIdQuery, bookID)
 	if err != nil {
-		r.logger.Error("failed to delete cover", zap.String("book_id", bookID), zap.Error(err))
-
-		return err
+		return fmt.Errorf("delete cover: %w", err)
 	}
 
 	return nil

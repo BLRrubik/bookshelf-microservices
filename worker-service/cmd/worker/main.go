@@ -56,7 +56,6 @@ func main() {
 		cfg.MinioBucket,
 		cfg.MinioPublicEndpoint,
 		cfg.MinioUseSSL,
-		log.Named("minio"),
 	)
 	if err != nil {
 		log.Fatal("failed to create minio client", zap.Error(err))
@@ -64,7 +63,7 @@ func main() {
 
 	log.Info("connected to minio")
 
-	repo := repository.NewCoverRepository(db, log.Named("cover_repository"))
+	repo := repository.NewCoverRepository(db)
 
 	imageHandler := handler.NewImageHandler(minioStorage, repo, log.Named("image_handler"))
 

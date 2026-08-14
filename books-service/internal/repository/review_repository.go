@@ -5,20 +5,20 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 )
 
 const (
 	createReviewQuery = `
-INSERT INTO reviews 
+INSERT INTO reviews
 (id, user_id, book_id, rating, title, content)
 VALUES ($1, $2, $3, $4, $5, $6)
 `
 	getReviewByIDQuery = `
-SELECT id, user_id, book_id, rating, title, content, created_at, updated_at 
+SELECT id, user_id, book_id, rating, title, content, created_at, updated_at
 FROM reviews
 WHERE id = $1
 `
@@ -45,14 +45,12 @@ SELECT id FROM reviews WHERE user_id = $1 and book_id = $2
 )
 
 type ReviewRepository struct {
-	db     *sqlx.DB
-	logger *zap.Logger
+	db *sqlx.DB
 }
 
-func NewReviewRepository(db *sqlx.DB, logger *zap.Logger) *ReviewRepository {
+func NewReviewRepository(db *sqlx.DB) *ReviewRepository {
 	return &ReviewRepository{
-		db:     db,
-		logger: logger,
+		db: db,
 	}
 }
 
@@ -70,9 +68,7 @@ func (rr *ReviewRepository) Create(ctx context.Context, review *domain.Review) e
 		review.Content,
 	)
 	if err != nil {
-		rr.logger.Error("failed to create review", zap.Error(err))
-
-		return err
+		return fmt.Errorf("create review: %w", err)
 	}
 
 	return nil
@@ -87,9 +83,7 @@ func (rr *ReviewRepository) GetByID(ctx context.Context, id string) (*domain.Rev
 			return nil, ErrReviewNotFound
 		}
 
-		rr.logger.Error("failed to get review by id", zap.String("review_id", id), zap.Error(err))
-
-		return nil, err
+		return nil, fmt.Errorf("get review by id: %w", err)
 	}
 
 	return &review, nil
@@ -109,17 +103,13 @@ func (rr *ReviewRepository) ListByBookID(ctx context.Context, bookID string, pag
 		offset,
 	)
 	if err != nil {
-		rr.logger.Error("failed to list reviews", zap.String("book_id", bookID), zap.Error(err))
-
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("list reviews: %w", err)
 	}
 
 	var count int
 	err = rr.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM reviews WHERE book_id = $1", bookID)
 	if err != nil {
-		rr.logger.Error("failed to count reviews", zap.String("book_id", bookID), zap.Error(err))
-
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("count reviews: %w", err)
 	}
 
 	return reviews, count, nil
@@ -135,9 +125,7 @@ func (rr *ReviewRepository) Update(ctx context.Context, review *domain.Review) e
 		review.ID,
 	)
 	if err != nil {
-		rr.logger.Error("failed to update review", zap.String("review_id", review.ID), zap.Error(err))
-
-		return err
+		return fmt.Errorf("update review: %w", err)
 	}
 
 	return nil
@@ -146,9 +134,7 @@ func (rr *ReviewRepository) Update(ctx context.Context, review *domain.Review) e
 func (rr *ReviewRepository) Delete(ctx context.Context, id string) error {
 	_, err := rr.db.ExecContext(ctx, deleteReviewQuery, id)
 	if err != nil {
-		rr.logger.Error("failed to delete review", zap.String("review_id", id), zap.Error(err))
-
-		return err
+		return fmt.Errorf("delete review: %w", err)
 	}
 
 	return nil
@@ -162,9 +148,7 @@ func (rr *ReviewRepository) UserHasReviewedBook(ctx context.Context, userID stri
 			return false, nil
 		}
 
-		rr.logger.Error("failed to check user review existence", zap.Error(err))
-
-		return false, err
+		return false, fmt.Errorf("check user review existence: %w", err)
 	}
 
 	return exists, nil

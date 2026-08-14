@@ -8,22 +8,19 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 )
 
 type Handler struct {
 	authHandler     *AuthHandler
 	internalHandler *InternalHandler
 	healthHandler   *HealthHandler
-	logger          *zap.Logger
 }
 
-func NewHandler(userService *service.UserService, db *sqlx.DB, jwtSecret string, logger *zap.Logger) *Handler {
+func NewHandler(userService *service.UserService, db *sqlx.DB, jwtSecret string) *Handler {
 	return &Handler{
-		authHandler:     NewAuthHandler(userService, jwtSecret, logger.Named("auth_handler")),
-		internalHandler: NewInternalHandler(userService, logger.Named("internal_handler")),
+		authHandler:     NewAuthHandler(userService, jwtSecret),
+		internalHandler: NewInternalHandler(userService),
 		healthHandler:   NewHealthHandler(db),
-		logger:          logger,
 	}
 }
 

@@ -38,7 +38,7 @@ func main() {
 
 	log.Info("connected to database")
 
-	rabbitMQClient, err := client.NewRabbitMQClient("amqp://guest:guest@localhost:5672", log.Named("rabbitmq"))
+	rabbitMQClient, err := client.NewRabbitMQClient("amqp://guest:guest@localhost:5672")
 	if err != nil {
 		log.Fatal("failed to connect to rabbitmq", zap.Error(err))
 	}
@@ -57,7 +57,6 @@ func main() {
 		cfg.MinioBucket,
 		cfg.MinIOPublicEndpoint,
 		cfg.MinIOUseSSL,
-		log.Named("minio"),
 	)
 	if err != nil {
 		log.Fatal("failed to create minio client", zap.Error(err))
@@ -76,7 +75,7 @@ func main() {
 		log.Named("auth_client"),
 	)
 
-	repos := repository.New(db, log.Named("repository"))
+	repos := repository.New(db)
 	services := service.New(repos, authClient, minioClient, rabbitMQClient, log.Named("service"))
 	handlers := handler.NewHandler(services, db, authClient, rabbitMQClient, minioClient, log.Named("handler"))
 

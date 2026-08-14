@@ -56,15 +56,19 @@ func (s *ReviewService) Create(
 
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
-		if errors.Is(err, ErrBookNotFound) {
+		if errors.Is(err, repository.ErrBookNotFound) {
 			return nil, ErrBookNotFound
 		}
+
+		s.logger.Error("create review failed: get book", zap.String("book_id", bookID), zap.Error(err))
 
 		return nil, err
 	}
 
 	reviewExist, err := s.reviewRepo.UserHasReviewedBook(ctx, userID, bookID)
 	if err != nil {
+		s.logger.Error("create review failed: check existing review", zap.String("book_id", bookID), zap.String("user_id", userID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -81,6 +85,8 @@ func (s *ReviewService) Create(
 	}
 
 	if err = s.reviewRepo.Create(ctx, review); err != nil {
+		s.logger.Error("create review failed", zap.String("book_id", bookID), zap.String("user_id", userID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -98,6 +104,8 @@ func (s *ReviewService) GetByID(ctx context.Context, id string) (*domain.Review,
 			return nil, ErrReviewNotFound
 		}
 
+		s.logger.Error("get review failed", zap.String("review_id", id), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -111,11 +119,15 @@ func (s *ReviewService) ListByBook(ctx context.Context, bookID string, page, lim
 			return nil, ErrBookNotFound
 		}
 
+		s.logger.Error("list reviews failed: get book", zap.String("book_id", bookID), zap.Error(err))
+
 		return nil, err
 	}
 
 	reviews, count, err := s.reviewRepo.ListByBookID(ctx, book.ID, page, limit)
 	if err != nil {
+		s.logger.Error("list reviews failed", zap.String("book_id", bookID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -167,6 +179,8 @@ func (s *ReviewService) Update(
 			return nil, ErrReviewNotFound
 		}
 
+		s.logger.Error("update review failed: get review", zap.String("review_id", reviewID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -191,6 +205,8 @@ func (s *ReviewService) Update(
 	}
 
 	if err = s.reviewRepo.Update(ctx, review); err != nil {
+		s.logger.Error("update review failed", zap.String("review_id", review.ID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -222,6 +238,8 @@ func (s *ReviewService) Delete(ctx context.Context, userID string, reviewID stri
 			return ErrReviewNotFound
 		}
 
+		s.logger.Error("delete review failed: get review", zap.String("review_id", reviewID), zap.Error(err))
+
 		return err
 	}
 
@@ -230,6 +248,8 @@ func (s *ReviewService) Delete(ctx context.Context, userID string, reviewID stri
 	}
 
 	if err = s.reviewRepo.Delete(ctx, reviewID); err != nil {
+		s.logger.Error("delete review failed", zap.String("review_id", reviewID), zap.Error(err))
+
 		return err
 	}
 

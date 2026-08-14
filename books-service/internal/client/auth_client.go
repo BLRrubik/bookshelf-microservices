@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -40,7 +41,6 @@ type UserPublic struct {
 type AuthClient struct {
 	httpClient *HTTPClient
 	serviceKey string
-	logger     *zap.Logger
 }
 
 func NewAuthClient(
@@ -58,7 +58,6 @@ func NewAuthClient(
 			RetryDelay: retryDelay,
 		}, logger),
 		serviceKey: serviceKey,
-		logger:     logger,
 	}
 }
 
@@ -80,8 +79,6 @@ func (c *AuthClient) VerifyToken(ctx context.Context, token string) (*VerifyResp
 
 	switch {
 	case resp.StatusCode >= 500:
-		c.logger.Error("verify token: auth-service internal error", zap.Int("status", resp.StatusCode))
-
 		return nil, ErrInternalError
 	case resp.StatusCode >= 400:
 		return nil, ErrRequestError
@@ -89,9 +86,7 @@ func (c *AuthClient) VerifyToken(ctx context.Context, token string) (*VerifyResp
 
 	var response VerifyResponse
 	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		c.logger.Error("verify token: failed to decode response", zap.Error(err))
-
-		return nil, err
+		return nil, fmt.Errorf("decode verify token response: %w", err)
 	}
 
 	return &response, nil
@@ -115,8 +110,6 @@ func (c *AuthClient) GetUsersByIDs(ctx context.Context, ids []string) ([]UserPub
 
 	switch {
 	case resp.StatusCode >= 500:
-		c.logger.Error("get users by ids: auth-service internal error", zap.Int("status", resp.StatusCode))
-
 		return nil, ErrInternalError
 	case resp.StatusCode >= 400:
 		return nil, ErrRequestError
@@ -124,9 +117,7 @@ func (c *AuthClient) GetUsersByIDs(ctx context.Context, ids []string) ([]UserPub
 
 	var response []UserPublic
 	if err = json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		c.logger.Error("get users by ids: failed to decode response", zap.Error(err))
-
-		return nil, err
+		return nil, fmt.Errorf("decode get users by ids response: %w", err)
 	}
 
 	return response, nil

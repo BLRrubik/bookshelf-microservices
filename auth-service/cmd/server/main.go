@@ -39,7 +39,7 @@ func main() {
 
 	userRepo := repository.NewUserRepository(db, log.Named("user_repository"))
 	userService := service.NewUserService(userRepo, cfg.JWTSecret, log.Named("user_service"))
-	handlers := handler.NewHandler(userService, db, cfg.JWTSecret, log.Named("handler"))
+	handlers := handler.NewHandler(userService, db, cfg.JWTSecret)
 
 	r := chi.NewRouter()
 

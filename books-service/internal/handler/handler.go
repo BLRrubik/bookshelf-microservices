@@ -19,7 +19,6 @@ type Handler struct {
 	healthHandler *HealthHandler
 	coverHandler  *CoverHandler
 	authClient    *client.AuthClient
-	logger        *zap.Logger
 }
 
 func NewHandler(
@@ -31,12 +30,11 @@ func NewHandler(
 	logger *zap.Logger,
 ) *Handler {
 	return &Handler{
-		bookHandler:   NewBookHandler(service.BookService, logger.Named("book_handler")),
-		reviewHandler: NewReviewHandler(service.ReviewService, logger.Named("review_handler")),
+		bookHandler:   NewBookHandler(service.BookService),
+		reviewHandler: NewReviewHandler(service.ReviewService),
 		healthHandler: NewHealthHandler(db, authClient, rabbitMQClient, minioClient),
 		coverHandler:  NewCoverHandler(service.CoverService, logger.Named("cover_handler")),
 		authClient:    authClient,
-		logger:        logger,
 	}
 }
 

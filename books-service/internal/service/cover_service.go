@@ -49,6 +49,10 @@ func (s *CoverService) UploadCover(
 ) (*domain.CoverUploadResponse, error) {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
+		if !errors.Is(err, repository.ErrBookNotFound) {
+			s.logger.Error("upload cover failed: get book", zap.String("book_id", bookID), zap.Error(err))
+		}
+
 		return nil, ErrBookNotFound
 	}
 
@@ -72,6 +76,8 @@ func (s *CoverService) UploadCover(
 	filepath := fmt.Sprintf("covers/%s/original.%s", book.ID, ext)
 
 	if err = s.minioClient.UploadFile(ctx, filepath, file, fileSize, client.GetContentType(filename)); err != nil {
+		s.logger.Error("upload cover failed: minio upload", zap.String("book_id", bookID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -82,6 +88,8 @@ func (s *CoverService) UploadCover(
 	}
 
 	if err = s.coverRepo.Create(ctx, cover); err != nil {
+		s.logger.Error("upload cover failed: create cover", zap.String("book_id", bookID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -92,6 +100,8 @@ func (s *CoverService) UploadCover(
 		"",
 		"",
 	); err != nil {
+		s.logger.Error("upload cover failed: update book cover", zap.String("book_id", bookID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -100,6 +110,8 @@ func (s *CoverService) UploadCover(
 		CoverID:      cover.ID,
 		OriginalPath: filepath,
 	}); err != nil {
+		s.logger.Error("upload cover failed: publish message", zap.String("book_id", bookID), zap.String("cover_id", cover.ID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -134,6 +146,8 @@ func (s *CoverService) GetCover(ctx context.Context, bookID string) (*domain.Cov
 			}, nil
 		}
 
+		s.logger.Error("get cover failed", zap.String("book_id", bookID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -161,6 +175,8 @@ func (s *CoverService) GetCoverStatus(ctx context.Context, bookID string) (*doma
 			}, nil
 		}
 
+		s.logger.Error("get cover status failed", zap.String("book_id", bookID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -178,6 +194,10 @@ func (s *CoverService) GetCoverStatus(ctx context.Context, bookID string) (*doma
 func (s *CoverService) DeleteCover(ctx context.Context, userID, bookID string) error {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
+		if !errors.Is(err, repository.ErrBookNotFound) {
+			s.logger.Error("delete cover failed: get book", zap.String("book_id", bookID), zap.Error(err))
+		}
+
 		return err
 	}
 
@@ -187,21 +207,31 @@ func (s *CoverService) DeleteCover(ctx context.Context, userID, bookID string) e
 
 	cover, err := s.coverRepo.GetByBookID(ctx, bookID)
 	if err != nil {
+		if !errors.Is(err, repository.ErrCoverNotFound) {
+			s.logger.Error("delete cover failed: get cover", zap.String("book_id", bookID), zap.Error(err))
+		}
+
 		return err
 	}
 
 	files := []string{cover.OriginalPath, cover.CoverPath, cover.ThumbPath}
 	for _, file := range files {
 		if err = s.minioClient.DeleteFile(ctx, file); err != nil {
+			s.logger.Error("delete cover failed: delete file", zap.String("book_id", bookID), zap.String("file", file), zap.Error(err))
+
 			return err
 		}
 	}
 
 	if err = s.coverRepo.DeleteByBookID(ctx, bookID); err != nil {
+		s.logger.Error("delete cover failed: delete record", zap.String("book_id", bookID), zap.Error(err))
+
 		return err
 	}
 
 	if err = s.coverRepo.UpdateBookCover(ctx, bookID, domain.CoverStatusNone, "", ""); err != nil {
+		s.logger.Error("delete cover failed: update book cover", zap.String("book_id", bookID), zap.Error(err))
+
 		return err
 	}
 

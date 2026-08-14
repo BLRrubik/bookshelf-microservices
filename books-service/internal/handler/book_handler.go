@@ -8,18 +8,15 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"go.uber.org/zap"
 )
 
 type BookHandler struct {
-	srv    *service.BookService
-	logger *zap.Logger
+	srv *service.BookService
 }
 
-func NewBookHandler(bookService *service.BookService, logger *zap.Logger) *BookHandler {
+func NewBookHandler(bookService *service.BookService) *BookHandler {
 	return &BookHandler{
-		srv:    bookService,
-		logger: logger,
+		srv: bookService,
 	}
 }
 
@@ -28,7 +25,6 @@ func (h *BookHandler) List(w http.ResponseWriter, r *http.Request) {
 
 	books, count, err := h.srv.List(r.Context(), filter)
 	if err != nil {
-		h.logger.Error("list books failed", zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, err.Error())
 
 		return
@@ -61,7 +57,6 @@ func (h *BookHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h.logger.Error("get book failed", zap.String("book_id", bookID), zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, err.Error())
 
 		return
@@ -89,7 +84,6 @@ func (h *BookHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := h.srv.Create(r.Context(), userID, req)
 	if err != nil {
-		h.logger.Error("create book failed", zap.String("user_id", userID), zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, err.Error())
 
 		return
@@ -118,7 +112,6 @@ func (h *BookHandler) Update(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrNotBookOwner):
 			writeError(w, r, http.StatusForbidden, "not book owner")
 		default:
-			h.logger.Error("update book failed", zap.String("book_id", bookID), zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, err.Error())
 		}
 
@@ -139,7 +132,6 @@ func (h *BookHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrNotBookOwner):
 			writeError(w, r, http.StatusForbidden, "not book owner")
 		default:
-			h.logger.Error("delete book failed", zap.String("book_id", bookID), zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, err.Error())
 		}
 

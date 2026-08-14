@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 )
 
 var (
@@ -23,10 +22,10 @@ type Repository struct {
 	CoverRepository  *CoverRepository
 }
 
-func New(db *sqlx.DB, logger *zap.Logger) *Repository {
+func New(db *sqlx.DB) *Repository {
 	return &Repository{
-		BookRepository:   NewBookRepository(db, logger.Named("book_repository")),
-		ReviewRepository: NewReviewRepository(db, logger.Named("review_repository")),
-		CoverRepository:  NewCoverRepository(db, logger.Named("cover_repository")),
+		BookRepository:   NewBookRepository(db),
+		ReviewRepository: NewReviewRepository(db),
+		CoverRepository:  NewCoverRepository(db),
 	}
 }

@@ -58,6 +58,8 @@ func (s *UserService) Register(ctx context.Context, req domain.RegisterRequest) 
 	}
 
 	if err = s.repo.Create(ctx, &user); err != nil {
+		s.logger.Error("create user failed", zap.String("email", req.Email), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -148,6 +150,8 @@ func (s *UserService) Login(ctx context.Context, req domain.LoginRequest) (*doma
 			return nil, ErrInvalidCredentials
 		}
 
+		s.logger.Error("login failed: get user by email", zap.String("email", req.Email), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -169,6 +173,8 @@ func (s *UserService) GetProfile(ctx context.Context, userID string) (*domain.Us
 			return nil, repository.ErrUserNotFound
 		}
 
+		s.logger.Error("get profile failed", zap.String("user_id", userID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -184,6 +190,8 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID string, req doma
 	switch {
 	case errors.Is(err, repository.ErrUserNotFound):
 	case err != nil:
+		s.logger.Error("update profile failed: check username", zap.String("user_id", userID), zap.Error(err))
+
 		return nil, err
 	case checkUser.ID != userID:
 		return nil, ErrUsernameExists
@@ -191,12 +199,16 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID string, req doma
 
 	user, err := s.repo.GetByID(ctx, userID)
 	if err != nil {
+		s.logger.Error("update profile failed: get user", zap.String("user_id", userID), zap.Error(err))
+
 		return nil, err
 	}
 
 	user.Username = req.Username
 
 	if err = s.repo.Update(ctx, user); err != nil {
+		s.logger.Error("update profile failed: update user", zap.String("user_id", userID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -212,6 +224,8 @@ func (s *UserService) GetUsersByIDs(ctx context.Context, ids []string) ([]domain
 
 	users, err := s.repo.GetByIDs(ctx, ids)
 	if err != nil {
+		s.logger.Error("get users by ids failed", zap.Error(err))
+
 		return nil, err
 	}
 

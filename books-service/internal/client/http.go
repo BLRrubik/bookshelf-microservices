@@ -106,8 +106,6 @@ func (c *HTTPClient) do(req *http.Request) (*http.Response, error) {
 	for attempt < c.maxRetries {
 		resp, err = c.client.Do(req)
 		if err != nil && !isTimeout(err) {
-			c.logger.Error("http request failed", zap.String("url", req.URL.String()), zap.Error(err))
-
 			return nil, err
 		}
 
@@ -126,10 +124,6 @@ func (c *HTTPClient) do(req *http.Request) (*http.Response, error) {
 		time.Sleep(delay)
 
 		delay *= 2
-	}
-
-	if err != nil {
-		c.logger.Error("http request exhausted retries", zap.String("url", req.URL.String()), zap.Error(err))
 	}
 
 	return resp, err

@@ -6,21 +6,17 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-
-	"go.uber.org/zap"
 )
 
 type AuthHandler struct {
 	userService *service.UserService
 	jwtSecret   string
-	logger      *zap.Logger
 }
 
-func NewAuthHandler(userService *service.UserService, jwtSecret string, logger *zap.Logger) *AuthHandler {
+func NewAuthHandler(userService *service.UserService, jwtSecret string) *AuthHandler {
 	return &AuthHandler{
 		userService: userService,
 		jwtSecret:   jwtSecret,
-		logger:      logger,
 	}
 }
 
@@ -49,7 +45,6 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 			errors.Is(err, service.ErrUsernameExists):
 			writeError(w, r, http.StatusBadRequest, err.Error())
 		default:
-			h.logger.Error("register failed", zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, "internal server error")
 		}
 
@@ -82,7 +77,6 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		h.logger.Error("login failed", zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, "internal server error")
 
 		return
@@ -96,7 +90,6 @@ func (h *AuthHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 
 	user, err := h.userService.GetProfile(r.Context(), userID)
 	if err != nil {
-		h.logger.Error("get profile failed", zap.String("user_id", userID), zap.Error(err))
 		writeError(w, r, http.StatusInternalServerError, "internal server error")
 
 		return
@@ -121,7 +114,6 @@ func (h *AuthHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 			errors.Is(err, service.ErrUsernameExists):
 			writeError(w, r, http.StatusBadRequest, "invalid username")
 		default:
-			h.logger.Error("update profile failed", zap.Error(err))
 			writeError(w, r, http.StatusInternalServerError, "internal server error")
 		}
 

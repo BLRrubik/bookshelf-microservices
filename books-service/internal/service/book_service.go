@@ -50,6 +50,8 @@ func (s *BookService) Create(ctx context.Context, userID string, req domain.Crea
 	}
 
 	if err := s.bookRepo.Create(ctx, &book); err != nil {
+		s.logger.Error("create book failed", zap.String("user_id", userID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -59,13 +61,31 @@ func (s *BookService) Create(ctx context.Context, userID string, req domain.Crea
 }
 
 func (s *BookService) GetByID(ctx context.Context, id string) (*domain.Book, error) {
-	return s.bookRepo.GetByID(ctx, id)
+	book, err := s.bookRepo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repository.ErrBookNotFound) {
+			return nil, ErrBookNotFound
+		}
+
+		s.logger.Error("get book failed", zap.String("book_id", id), zap.Error(err))
+
+		return nil, err
+	}
+
+	return book, nil
 }
 
 func (s *BookService) List(ctx context.Context, params domain.ListParams) ([]domain.Book, int, error) {
 	params.Normalize()
 
-	return s.bookRepo.List(ctx, params)
+	books, count, err := s.bookRepo.List(ctx, params)
+	if err != nil {
+		s.logger.Error("list books failed", zap.Error(err))
+
+		return nil, 0, err
+	}
+
+	return books, count, nil
 }
 
 func (s *BookService) ListByUser(ctx context.Context, userID string, params domain.ListParams) ([]domain.Book, int, error) {
@@ -73,6 +93,8 @@ func (s *BookService) ListByUser(ctx context.Context, userID string, params doma
 
 	books, count, err := s.bookRepo.ListByUserID(ctx, userID, params)
 	if err != nil {
+		s.logger.Error("list books by user failed", zap.String("user_id", userID), zap.Error(err))
+
 		return nil, 0, err
 	}
 
@@ -87,6 +109,10 @@ func (s *BookService) Update(
 ) (*domain.Book, error) {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
+		if !errors.Is(err, repository.ErrBookNotFound) {
+			s.logger.Error("update book failed: get book", zap.String("book_id", bookID), zap.Error(err))
+		}
+
 		return nil, ErrBookNotFound
 	}
 
@@ -115,6 +141,8 @@ func (s *BookService) Update(
 	}
 
 	if err = s.bookRepo.Update(ctx, book); err != nil {
+		s.logger.Error("update book failed", zap.String("book_id", book.ID), zap.Error(err))
+
 		return nil, err
 	}
 
@@ -131,9 +159,13 @@ func (s *BookService) Update(
 func (s *BookService) Delete(ctx context.Context, userID string, bookID string) error {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {
-		if errors.Is(err, ErrBookNotFound) {
+		if errors.Is(err, repository.ErrBookNotFound) {
 			return ErrBookNotFound
 		}
+
+		s.logger.Error("delete book failed: get book", zap.String("book_id", bookID), zap.Error(err))
+
+		return err
 	}
 
 	if book.UserID != userID {
@@ -141,6 +173,8 @@ func (s *BookService) Delete(ctx context.Context, userID string, bookID string) 
 	}
 
 	if err = s.bookRepo.Delete(ctx, bookID); err != nil {
+		s.logger.Error("delete book failed", zap.String("book_id", bookID), zap.Error(err))
+
 		return err
 	}
 

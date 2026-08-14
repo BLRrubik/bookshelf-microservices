@@ -9,12 +9,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"go.uber.org/zap"
 )
 
 const (
 	createBookQuery = `
-INSERT INTO books 
+INSERT INTO books
 (id, title, author, description, isbn, published_year, created_by)
 VALUES($1, $2, $3, $4, $5, $6, $7)
 ON CONFLICT DO NOTHING;
@@ -74,14 +73,12 @@ WHERE id = $1
 )
 
 type BookRepository struct {
-	db     *sqlx.DB
-	logger *zap.Logger
+	db *sqlx.DB
 }
 
-func NewBookRepository(db *sqlx.DB, logger *zap.Logger) *BookRepository {
+func NewBookRepository(db *sqlx.DB) *BookRepository {
 	return &BookRepository{
-		db:     db,
-		logger: logger,
+		db: db,
 	}
 }
 
@@ -100,9 +97,7 @@ func (br *BookRepository) Create(ctx context.Context, book *domain.Book) error {
 		book.UserID,
 	)
 	if err != nil {
-		br.logger.Error("failed to create book", zap.Error(err))
-
-		return err
+		return fmt.Errorf("create book: %w", err)
 	}
 
 	return nil
@@ -116,9 +111,7 @@ func (br *BookRepository) GetByID(ctx context.Context, id string) (*domain.Book,
 			return nil, ErrBookNotFound
 		}
 
-		br.logger.Error("failed to get book by id", zap.String("book_id", id), zap.Error(err))
-
-		return nil, err
+		return nil, fmt.Errorf("get book by id: %w", err)
 	}
 
 	return &book, nil
@@ -139,16 +132,12 @@ func (br *BookRepository) List(ctx context.Context, params domain.ListParams) ([
 		offset,
 	)
 	if err != nil {
-		br.logger.Error("failed to list books", zap.Error(err))
-
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("list books: %w", err)
 	}
 
 	err = br.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM books")
 	if err != nil {
-		br.logger.Error("failed to count books", zap.Error(err))
-
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("count books: %w", err)
 	}
 
 	return books, count, nil
@@ -170,16 +159,12 @@ func (br *BookRepository) ListByUserID(ctx context.Context, userID string, param
 		offset,
 	)
 	if err != nil {
-		br.logger.Error("failed to list books by user", zap.String("user_id", userID), zap.Error(err))
-
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("list books by user: %w", err)
 	}
 
 	err = br.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM books")
 	if err != nil {
-		br.logger.Error("failed to count books", zap.Error(err))
-
-		return nil, 0, err
+		return nil, 0, fmt.Errorf("count books: %w", err)
 	}
 
 	return books, count, nil
@@ -197,9 +182,7 @@ func (br *BookRepository) Update(ctx context.Context, book *domain.Book) error {
 		book.ID,
 	)
 	if err != nil {
-		br.logger.Error("failed to update book", zap.String("book_id", book.ID), zap.Error(err))
-
-		return err
+		return fmt.Errorf("update book: %w", err)
 	}
 
 	return nil
@@ -208,9 +191,7 @@ func (br *BookRepository) Update(ctx context.Context, book *domain.Book) error {
 func (br *BookRepository) Delete(ctx context.Context, id string) error {
 	_, err := br.db.ExecContext(ctx, deleteBookQuery, id)
 	if err != nil {
-		br.logger.Error("failed to delete book", zap.String("book_id", id), zap.Error(err))
-
-		return err
+		return fmt.Errorf("delete book: %w", err)
 	}
 
 	return nil
