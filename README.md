@@ -150,3 +150,15 @@ docker compose up -d frontend
 Подробное описание каждого этапа находится на сайте курса:
 
 **https://praxiscode.io**
+
+
+## Gateway
+Frontend ──── gateway:8000/api/v1/* ──┬── auth-service:8081
+                                      └── books-service:8082 ── worker-service:8083
+
+Сквозные функции:
+* Аутентификация и авторизация
+* Rate limiting (ограничение количества запросов)
+* Логирование и трейсинг
+* CORS заголовки
+* Кэширование
