@@ -33,7 +33,7 @@ func main() {
 
 	r.Use(middleware.RequestLogger(log.Named("http")))
 	r.Use(chimiddleware.Recoverer)
-	r.Use(chimiddleware.RequestID)
+	r.Use(middleware.RequestID())
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
