@@ -5,6 +5,7 @@ import (
 	"bookshelf/auth-service/internal/service"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
@@ -62,19 +63,28 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	_, _ = w.Write(bytes)
 }
 
+// codeFromStatus derives a stable machine-readable error code from the HTTP
+// status text, e.g. 404 -> "NOT_FOUND", 502 -> "BAD_GATEWAY".
+func codeFromStatus(status int) string {
+	text := http.StatusText(status)
+	if text == "" {
+		return "UNKNOWN_ERROR"
+	}
+
+	return strings.ToUpper(strings.ReplaceAll(text, " ", "_"))
+}
+
 func writeError(w http.ResponseWriter, r *http.Request, status int, message string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
 	resp := domain.ErrorResponse{
-		Error: domain.ErrorData{
-			Code:    status,
-			Message: message,
-		},
+		Code:    codeFromStatus(status),
+		Message: message,
 	}
 
 	if reqID, ok := r.Context().Value(requestIDKey).(string); ok {
-		resp.Error.RequestID = reqID
+		resp.RequestID = reqID
 	}
 
 	bytes, err := json.Marshal(resp)
