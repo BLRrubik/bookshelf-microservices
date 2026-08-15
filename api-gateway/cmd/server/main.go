@@ -2,6 +2,7 @@ package main
 
 import (
 	"bookshelf/api-gateway/internal/config"
+	"bookshelf/api-gateway/internal/handler"
 	"bookshelf/api-gateway/internal/logger"
 	"bookshelf/api-gateway/internal/middleware"
 	"bookshelf/api-gateway/internal/proxy"
@@ -26,6 +27,7 @@ func main() {
 	defer log.Sync()
 
 	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL)
+	handlers := handler.NewHandler(proxyService)
 
 	r := chi.NewRouter()
 
@@ -41,21 +43,7 @@ func main() {
 		MaxAge:           300,
 	}))
 
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
-	r.Route("/api/v1/auth", func(r chi.Router) {
-		r.HandleFunc("/*", proxyService.ProxyToAuth)
-	})
-
-	r.Route("/api/v1/users", func(r chi.Router) {
-		r.HandleFunc("/*", proxyService.ProxyToAuth)
-	})
-
-	r.Route("/api/v1/books", func(r chi.Router) {
-		r.HandleFunc("/*", proxyService.ProxyToBooks)
-	})
+	handlers.RegisterRoutes(r)
 
 	server := &http.Server{
 		ReadTimeout:  5 * time.Second,

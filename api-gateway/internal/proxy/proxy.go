@@ -28,12 +28,12 @@ func New(authURL, booksURL string) *ServiceProxy {
 	}
 }
 
-func (p *ServiceProxy) ProxyToAuth(w http.ResponseWriter, r *http.Request) {
-	p.ProxyRequest(w, r, joinPath(p.authServiceURL, r.URL.Path, r.URL.RawQuery))
+func (p *ServiceProxy) ProxyAuthPath(w http.ResponseWriter, r *http.Request, path string) {
+	p.ProxyRequest(w, r, joinPath(p.authServiceURL, path, r.URL.RawQuery))
 }
 
-func (p *ServiceProxy) ProxyToBooks(w http.ResponseWriter, r *http.Request) {
-	p.ProxyRequest(w, r, joinPath(p.booksServiceURL, r.URL.Path, r.URL.RawQuery))
+func (p *ServiceProxy) ProxyBooksPath(w http.ResponseWriter, r *http.Request, path string) {
+	p.ProxyRequest(w, r, joinPath(p.booksServiceURL, path, r.URL.RawQuery))
 }
 
 func (p *ServiceProxy) ProxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) {
