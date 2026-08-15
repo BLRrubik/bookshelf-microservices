@@ -23,6 +23,8 @@ import (
 )
 
 func main() {
+	ctx := context.Background()
+
 	cfg := config.Load()
 
 	log := logger.New(cfg.LogLevel)
@@ -62,6 +64,10 @@ func main() {
 		log.Fatal("failed to create minio client", zap.Error(err))
 	}
 
+	if err = minioClient.EnsureBucket(ctx); err != nil {
+		log.Fatal("failed to ensure bucket", zap.Error(err))
+	}
+
 	log.Info("connected to minio")
 
 	_ = minioClient
@@ -85,7 +91,7 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5175", "http://localhost:3003"},
+		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		ExposedHeaders:   []string{"Link"},
@@ -118,10 +124,10 @@ func main() {
 
 	log.Info("shutdown signal received")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	if err = server.Shutdown(ctx); err != nil {
+	if err = server.Shutdown(shutdownCtx); err != nil {
 		log.Error("graceful shutdown failed", zap.Error(err))
 	} else {
 		log.Info("graceful shutdown complete")

@@ -30,7 +30,7 @@ func main() {
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.RequestID)
 	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"http://localhost:5176", "http://localhost:3004"},
+		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		ExposedHeaders:   []string{"Link"},
