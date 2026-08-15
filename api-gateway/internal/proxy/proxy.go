@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -10,6 +11,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 type ServiceProxy struct {
@@ -39,14 +42,14 @@ func (p *ServiceProxy) ProxyBooksPath(w http.ResponseWriter, r *http.Request, pa
 func (p *ServiceProxy) ProxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) {
 	req, err := p.newUpstreamRequest(r, targetURL)
 	if err != nil {
-		writeProxyError(w, err)
+		p.handleProxyError(w, r, targetURL, err)
 
 		return
 	}
 
 	response, err := p.client.Do(req)
 	if err != nil {
-		writeProxyError(w, err)
+		p.handleProxyError(w, r, targetURL, err)
 
 		return
 	}
@@ -110,16 +113,48 @@ func setForwardedHeaders(header http.Header, r *http.Request) {
 	header.Set("X-Forwarded-Host", r.Host)
 }
 
-func writeProxyError(w http.ResponseWriter, err error) {
+func (p *ServiceProxy) handleProxyError(w http.ResponseWriter, r *http.Request, targetURL string, err error) {
+	requestID := middleware.GetReqID(r.Context())
+
+	status, code, message := classifyProxyError(err)
+
+	slog.ErrorContext(
+		r.Context(),
+		"proxy request failed",
+		"target", targetURL,
+		"error", err,
+		"code", code,
+		"request_id", requestID,
+	)
+
+	writeError(w, status, code, message, requestID)
+}
+
+func classifyProxyError(err error) (status int, code, message string) {
 	var netErr net.Error
 	if errors.Is(err, context.DeadlineExceeded) ||
 		(errors.As(err, &netErr) && netErr.Timeout()) {
-		http.Error(w, "upstream timeout", http.StatusGatewayTimeout)
-
-		return
+		return http.StatusGatewayTimeout, "GATEWAY_TIMEOUT", "Backend service timeout"
 	}
 
-	http.Error(w, "upstream unavailable", http.StatusBadGateway)
+	return http.StatusBadGateway, "BAD_GATEWAY", "Backend service unavailable"
+}
+
+func writeError(w http.ResponseWriter, status int, code, message, requestID string) {
+	body := map[string]string{
+		"code":    code,
+		"message": message,
+	}
+	if requestID != "" {
+		body["request_id"] = requestID
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	if err := json.NewEncoder(w).Encode(body); err != nil {
+		slog.Error("write proxy error response", "error", err)
+	}
 }
 
 var hopByHopHeaders = []string{
