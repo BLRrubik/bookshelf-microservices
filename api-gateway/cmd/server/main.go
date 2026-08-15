@@ -45,8 +45,16 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	r.Post("/test-proxy", func(w http.ResponseWriter, r *http.Request) {
-		proxyService.ProxyRequest(w, r, cfg.AuthServiceURL+"/api/v1/auth/login")
+	r.Route("/api/v1/auth", func(r chi.Router) {
+		r.HandleFunc("/*", proxyService.ProxyToAuth)
+	})
+
+	r.Route("/api/v1/users", func(r chi.Router) {
+		r.HandleFunc("/*", proxyService.ProxyToAuth)
+	})
+
+	r.Route("/api/v1/books", func(r chi.Router) {
+		r.HandleFunc("/*", proxyService.ProxyToBooks)
 	})
 
 	server := &http.Server{

@@ -28,6 +28,14 @@ func New(authURL, booksURL string) *ServiceProxy {
 	}
 }
 
+func (p *ServiceProxy) ProxyToAuth(w http.ResponseWriter, r *http.Request) {
+	p.ProxyRequest(w, r, joinPath(p.authServiceURL, r.URL.Path, r.URL.RawQuery))
+}
+
+func (p *ServiceProxy) ProxyToBooks(w http.ResponseWriter, r *http.Request) {
+	p.ProxyRequest(w, r, joinPath(p.booksServiceURL, r.URL.Path, r.URL.RawQuery))
+}
+
 func (p *ServiceProxy) ProxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) {
 	req, err := p.newUpstreamRequest(r, targetURL)
 	if err != nil {
@@ -76,9 +84,9 @@ func (p *ServiceProxy) newUpstreamRequest(r *http.Request, targetURL string) (*h
 	return out, nil
 }
 
-func joinPath(base, incoming string) string {
+func joinPath(base, incoming, query string) string {
 	return strings.TrimRight(base, "/") + "/" +
-		strings.TrimLeft(incoming, "/")
+		strings.TrimLeft(incoming, "/") + "?" + query
 }
 
 func copyHeaders(dst, src http.Header) {

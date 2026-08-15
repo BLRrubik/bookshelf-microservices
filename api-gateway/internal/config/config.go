@@ -30,6 +30,6 @@ func (c *Config) normalize() {
 	}
 
 	if c.BooksServiceURL == "" {
-		c.BooksServiceURL = "http://localhost:8081"
+		c.BooksServiceURL = "http://localhost:8082"
 	}
 }
