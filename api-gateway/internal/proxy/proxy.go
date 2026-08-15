@@ -98,14 +98,11 @@ func copyHeaders(dst, src http.Header) {
 }
 
 func setForwardedHeaders(header http.Header, r *http.Request) {
-	header.Del("X-Forwarded-For")
-	header.Del("X-Real-IP")
-	header.Del("X-Forwarded-Proto")
-	header.Del("X-Forwarded-Host")
-
 	ip := getClientIP(r)
-	header.Set("X-Forwarded-For", ip)
-	header.Set("X-Real-IP", ip)
+	header.Add("X-Forwarded-For", ip)
+	if header.Get("X-Real-IP") == "" {
+		header.Add("X-Real-Ip", ip)
+	}
 
 	proto := "http"
 	if r.TLS != nil {
@@ -151,6 +148,16 @@ func removeHopByHop(header http.Header) {
 }
 
 func getClientIP(r *http.Request) string {
+	splitted := strings.Split(r.Header.Get("X-Forwarded-For"), ",")
+	if len(splitted[0]) >= 0 {
+		return splitted[0]
+	}
+
+	ip := r.Header.Get("X-Real-Ip")
+	if len(ip) >= 0 {
+		return ip
+	}
+
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
 		return r.RemoteAddr
