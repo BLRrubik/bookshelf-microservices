@@ -142,7 +142,7 @@ func classifyProxyError(err error) (status int, code, message string) {
 }
 
 func writeError(w http.ResponseWriter, status int, code, message, requestID string) {
-	body := domain.Error{
+	body := domain.ErrorResponse{
 		Code:    code,
 		Message: message,
 	}
