@@ -17,12 +17,13 @@ func New(level string) *zap.Logger {
 	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	cfg := zap.Config{
-		Level:            zap.NewAtomicLevelAt(lvl),
-		Development:      false,
-		Encoding:         "console",
-		EncoderConfig:    encoderCfg,
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
+		Level:             zap.NewAtomicLevelAt(lvl),
+		Development:       false,
+		Encoding:          "console",
+		EncoderConfig:     encoderCfg,
+		DisableStacktrace: true,
+		OutputPaths:       []string{"stdout"},
+		ErrorOutputPaths:  []string{"stderr"},
 	}
 
 	l, err := cfg.Build()
