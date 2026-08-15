@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"bookshelf/api-gateway/internal/domain"
 	"context"
 	"encoding/json"
 	"errors"
@@ -141,12 +142,12 @@ func classifyProxyError(err error) (status int, code, message string) {
 }
 
 func writeError(w http.ResponseWriter, status int, code, message, requestID string) {
-	body := map[string]string{
-		"code":    code,
-		"message": message,
+	body := domain.Error{
+		Code:    code,
+		Message: message,
 	}
 	if requestID != "" {
-		body["request_id"] = requestID
+		body.RequestID = requestID
 	}
 
 	w.Header().Set("Content-Type", "application/json")
