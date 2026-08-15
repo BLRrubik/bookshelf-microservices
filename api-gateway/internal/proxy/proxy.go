@@ -103,11 +103,9 @@ func setForwardedHeaders(header http.Header, r *http.Request) {
 	header.Del("X-Forwarded-Proto")
 	header.Del("X-Forwarded-Host")
 
-	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil {
-		header.Set("X-Forwarded-For", host)
-		header.Set("X-Real-IP", host)
-	}
+	ip := getClientIP(r)
+	header.Set("X-Forwarded-For", ip)
+	header.Set("X-Real-IP", ip)
 
 	proto := "http"
 	if r.TLS != nil {
@@ -150,4 +148,13 @@ func removeHopByHop(header http.Header) {
 	for _, name := range hopByHopHeaders {
 		header.Del(name)
 	}
+}
+
+func getClientIP(r *http.Request) string {
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return r.RemoteAddr
+	}
+
+	return host
 }
