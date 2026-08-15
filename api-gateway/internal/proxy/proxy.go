@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-chi/chi/v5/middleware"
+	"bookshelf/api-gateway/internal/middleware"
 )
 
 type ServiceProxy struct {
@@ -114,7 +114,7 @@ func setForwardedHeaders(header http.Header, r *http.Request) {
 }
 
 func (p *ServiceProxy) handleProxyError(w http.ResponseWriter, r *http.Request, targetURL string, err error) {
-	requestID := middleware.GetReqID(r.Context())
+	requestID := middleware.GetRequestID(r.Context())
 
 	status, code, message := classifyProxyError(err)
 
