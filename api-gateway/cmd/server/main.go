@@ -3,11 +3,11 @@ package main
 import (
 	"bookshelf/api-gateway/internal/config"
 	"bookshelf/api-gateway/internal/handler"
-	"bookshelf/api-gateway/internal/logger"
 	"bookshelf/api-gateway/internal/middleware"
 	"bookshelf/api-gateway/internal/proxy"
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -17,23 +17,27 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"go.uber.org/zap"
 )
 
 func main() {
 	cfg := config.Load()
 
-	log := logger.New(zap.DebugLevel.String())
-	defer log.Sync()
+	var logHandler slog.Handler
+	if cfg.LogFormat == "text" {
+		logHandler = slog.NewTextHandler(os.Stdout, nil)
+	} else {
+		logHandler = slog.NewJSONHandler(os.Stdout, nil)
+	}
+	slog.SetDefault(slog.New(logHandler))
 
 	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL)
 	handlers := handler.NewHandler(proxyService)
 
 	r := chi.NewRouter()
 
-	r.Use(middleware.RequestLogger(log.Named("http")))
-	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.RequestID())
+	r.Use(chimiddleware.Recoverer)
+	r.Use(middleware.Logging)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -54,10 +58,11 @@ func main() {
 	}
 
 	go func() {
-		log.Info("server listening", zap.String("addr", cfg.Port))
+		slog.Info("server listening", "addr", cfg.Port)
 
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatal("server failed", zap.Error(err))
+			slog.Error("server failed", "error", err)
+			os.Exit(1)
 		}
 	}()
 
@@ -66,14 +71,14 @@ func main() {
 
 	<-termChan
 
-	log.Info("shutdown signal received")
+	slog.Info("shutdown signal received")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Error("graceful shutdown failed", zap.Error(err))
+		slog.Error("graceful shutdown failed", "error", err)
 	} else {
-		log.Info("graceful shutdown complete")
+		slog.Info("graceful shutdown complete")
 	}
 }

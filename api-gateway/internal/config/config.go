@@ -6,6 +6,7 @@ type Config struct {
 	Port            string
 	AuthServiceURL  string
 	BooksServiceURL string
+	LogFormat       string
 }
 
 func Load() *Config {
@@ -13,6 +14,7 @@ func Load() *Config {
 		Port:            os.Getenv("PORT"),
 		AuthServiceURL:  os.Getenv("AUTH_SERVICE_URL"),
 		BooksServiceURL: os.Getenv("BOOKS_SERVICE_URL"),
+		LogFormat:       os.Getenv("LOG_FORMAT"),
 	}
 
 	config.normalize()
@@ -31,5 +33,9 @@ func (c *Config) normalize() {
 
 	if c.BooksServiceURL == "" {
 		c.BooksServiceURL = "http://localhost:8082"
+	}
+
+	if c.LogFormat != "json" && c.LogFormat != "text" {
+		c.LogFormat = "text"
 	}
 }
