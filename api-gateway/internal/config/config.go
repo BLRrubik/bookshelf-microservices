@@ -22,7 +22,7 @@ func Load() *Config {
 
 func (c *Config) normalize() {
 	if c.Port == "" {
-		c.Port = ":8080"
+		c.Port = ":8000"
 	}
 
 	if c.AuthServiceURL == "" {

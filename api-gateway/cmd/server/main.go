@@ -4,6 +4,7 @@ import (
 	"bookshelf/api-gateway/internal/config"
 	"bookshelf/api-gateway/internal/logger"
 	"bookshelf/api-gateway/internal/middleware"
+	"bookshelf/api-gateway/internal/proxy"
 	"context"
 	"errors"
 	"net/http"
@@ -24,6 +25,8 @@ func main() {
 	log := logger.New(zap.DebugLevel.String())
 	defer log.Sync()
 
+	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL)
+
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestLogger(log.Named("http")))
@@ -40,6 +43,10 @@ func main() {
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
+	})
+
+	r.Post("/test-proxy", func(w http.ResponseWriter, r *http.Request) {
+		proxyService.ProxyRequest(w, r, cfg.AuthServiceURL+"/api/v1/auth/login")
 	})
 
 	server := &http.Server{
