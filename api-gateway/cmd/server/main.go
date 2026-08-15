@@ -34,10 +34,10 @@ func main() {
 
 	r := chi.NewRouter()
 
+	r.Use(middleware.Cors)
 	r.Use(middleware.RequestID)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.Logging)
-	r.Use(middleware.Cors)
 
 	handlers.RegisterRoutes(r)
 
