@@ -7,6 +7,7 @@ type Config struct {
 	AuthServiceURL  string
 	BooksServiceURL string
 	LogFormat       string
+	RedisURL        string
 }
 
 func Load() *Config {
@@ -15,6 +16,7 @@ func Load() *Config {
 		AuthServiceURL:  os.Getenv("AUTH_SERVICE_URL"),
 		BooksServiceURL: os.Getenv("BOOKS_SERVICE_URL"),
 		LogFormat:       os.Getenv("LOG_FORMAT"),
+		RedisURL:        os.Getenv("REDIS_URL"),
 	}
 
 	config.normalize()
@@ -37,5 +39,9 @@ func (c *Config) normalize() {
 
 	if c.LogFormat != "json" && c.LogFormat != "text" {
 		c.LogFormat = "text"
+	}
+
+	if c.RedisURL == "" {
+		c.RedisURL = "localhost:6379"
 	}
 }
