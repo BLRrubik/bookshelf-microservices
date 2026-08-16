@@ -22,6 +22,11 @@ SELECT id, user_id, book_id, rating, title, content, created_at, updated_at
 FROM reviews
 WHERE id = $1
 `
+	getReviewsByUserIDQuery = `
+SELECT id, user_id, book_id, rating, title, content, created_at, updated_at
+FROM reviews
+WHERE user_id = $1
+`
 	listReviewsByBookIDQuery = `
 SELECT id, user_id, book_id, rating, title, content, created_at, updated_at
 FROM reviews
@@ -87,6 +92,21 @@ func (rr *ReviewRepository) GetByID(ctx context.Context, id string) (*domain.Rev
 	}
 
 	return &review, nil
+}
+
+func (rr *ReviewRepository) GetByUserID(ctx context.Context, userID string) ([]domain.Review, error) {
+	var reviews []domain.Review
+
+	err := rr.db.SelectContext(ctx, &reviews, getReviewsByUserIDQuery, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrReviewNotFound
+		}
+
+		return nil, fmt.Errorf("get review by id: %w", err)
+	}
+
+	return reviews, nil
 }
 
 func (rr *ReviewRepository) ListByBookID(ctx context.Context, bookID string, page, limit int) ([]domain.Review, int, error) {

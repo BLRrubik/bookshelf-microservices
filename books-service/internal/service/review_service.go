@@ -112,6 +112,17 @@ func (s *ReviewService) GetByID(ctx context.Context, id string) (*domain.Review,
 	return review, nil
 }
 
+func (s *ReviewService) GetByUserID(ctx context.Context, userID string) ([]domain.Review, error) {
+	reviews, err := s.reviewRepo.GetByUserID(ctx, userID)
+	if err != nil {
+		s.logger.Error("get reviews by user failed", zap.String("user_id", userID), zap.Error(err))
+
+		return nil, err
+	}
+
+	return reviews, nil
+}
+
 func (s *ReviewService) ListByBook(ctx context.Context, bookID string, page, limit int) (*domain.ReviewListResponse, error) {
 	book, err := s.bookRepo.GetByID(ctx, bookID)
 	if err != nil {

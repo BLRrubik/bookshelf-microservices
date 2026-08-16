@@ -59,6 +59,30 @@ func (h *ReviewHandler) GetReview(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, review.ToResponse())
 }
 
+func (h *ReviewHandler) GetReviewByUser(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "id")
+
+	reviews, err := h.svc.GetByUserID(r.Context(), userID)
+	if err != nil {
+		if errors.Is(err, service.ErrReviewNotFound) {
+			writeError(w, r, http.StatusNotFound, "review not found")
+
+			return
+		}
+
+		writeError(w, r, http.StatusInternalServerError, err.Error())
+
+		return
+	}
+
+	resp := make([]domain.ReviewResponse, len(reviews))
+	for i, review := range reviews {
+		resp[i] = review.ToResponse()
+	}
+
+	writeJSON(w, http.StatusOK, resp)
+}
+
 func (h *ReviewHandler) Create(w http.ResponseWriter, r *http.Request) {
 	userID := getUserID(r.Context())
 	bookID := chi.URLParam(r, "book_id")

@@ -46,6 +46,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Get("/books/{book_id}/reviews", h.reviewHandler.List)
 		r.Get("/reviews/{id} ", h.reviewHandler.GetReview)
+		r.Get("/reviews/user/{id}", h.reviewHandler.GetReviewByUser)
 
 		r.Get("/books", h.bookHandler.List)
 		r.Get("/books/{id}", h.bookHandler.GetByID)
