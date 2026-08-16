@@ -58,8 +58,10 @@ func main() {
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.Logging)
 	r.Use(middleware.RateLimitMiddleware(&middleware.RateLimitConfig{
-		Limiter: rateLimiter,
-		Limit:   25,
+		Limiter:         rateLimiter,
+		AnonymousLimit:  100,
+		AuthorizedLimit: 1000,
+		UploadLimit:     10,
 	}))
 
 	handlers.RegisterRoutes(r)
