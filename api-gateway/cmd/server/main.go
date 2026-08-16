@@ -6,6 +6,7 @@ import (
 	"bookshelf/api-gateway/internal/handler"
 	"bookshelf/api-gateway/internal/middleware"
 	"bookshelf/api-gateway/internal/proxy"
+	"bookshelf/api-gateway/internal/ratelimit"
 	"context"
 	"errors"
 	"log"
@@ -18,9 +19,12 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/redis/go-redis/v9"
 )
 
 func main() {
+	ctx := context.Background()
+
 	cfg := config.Load()
 
 	var logHandler slog.Handler
@@ -31,11 +35,23 @@ func main() {
 	}
 	slog.SetDefault(slog.New(logHandler))
 
-	cacheClient, err := cache.New(cfg.RedisURL)
+	opts, err := redis.ParseURL(cfg.RedisURL)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalln(err)
 	}
-	defer cacheClient.Close()
+
+	redisClient := redis.NewClient(opts)
+	defer redisClient.Close()
+
+	if err = redisClient.Ping(ctx).Err(); err != nil {
+		log.Fatalln(err)
+	}
+
+	cacheClient := cache.New(redisClient)
+	rateLimiter := ratelimit.New(redisClient, 10*time.Second)
+
+	_ = cacheClient
+	_ = rateLimiter
 
 	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL)
 	handlers := handler.NewHandler(proxyService)

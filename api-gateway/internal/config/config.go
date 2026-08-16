@@ -42,6 +42,6 @@ func (c *Config) normalize() {
 	}
 
 	if c.RedisURL == "" {
-		c.RedisURL = "localhost:6379"
+		c.RedisURL = "redis://localhost:6379"
 	}
 }
