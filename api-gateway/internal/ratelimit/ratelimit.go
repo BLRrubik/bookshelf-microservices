@@ -25,15 +25,33 @@ func New(client *redis.Client, window time.Duration) *RateLimiter {
 	return &RateLimiter{client: client, window: window}
 }
 
-func (r *RateLimiter) Allow(ctx context.Context, key string, limit int) bool {
-	rate, err := r.client.Incr(ctx, rateLimitKey+key).Result()
+func (r *RateLimiter) Allow(ctx context.Context, key string, limit int) (*Result, error) {
+	fullKey := rateLimitKey + key
+
+	rate, err := r.client.Incr(ctx, fullKey).Result()
 	if err != nil {
-		return false
+		return nil, err
 	}
 
-	if rate == 1 {
-		r.client.Expire(ctx, rateLimitKey+key, r.window)
+	ttl := r.window
+	switch {
+	case rate == 1:
+		r.client.Expire(ctx, fullKey, r.window)
+	default:
+		if remaining, err := r.client.TTL(ctx, fullKey).Result(); err == nil && remaining > 0 {
+			ttl = remaining
+		}
 	}
 
-	return rate <= int64(limit)
+	remaining := limit - int(rate)
+	if remaining < 0 {
+		remaining = 0
+	}
+
+	return &Result{
+		Allowed:   rate <= int64(limit),
+		Limit:     limit,
+		Remaining: remaining,
+		ResetAt:   time.Now().Add(ttl),
+	}, nil
 }
