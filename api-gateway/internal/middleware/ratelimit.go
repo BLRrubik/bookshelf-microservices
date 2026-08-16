@@ -22,18 +22,16 @@ func RateLimitMiddleware(cfg *RateLimitConfig) func(http.Handler) http.Handler {
 				return
 			}
 
-			switch {
-			case res.Allowed:
-				setRateLimitHeader(w, res.Limit, res.Remaining, res.ResetAt)
+			setRateLimitHeader(w, res.Limit, res.Remaining, res.ResetAt)
 
-				next.ServeHTTP(w, r)
-
-			default:
-				w.Header().Set("Retry-After", strconv.Itoa(int(res.ResetAt.Unix())))
+			if !res.Allowed {
+				w.Header().Set("Retry-After", strconv.Itoa(int(res.ResetAt.Sub(time.Now()).Seconds())))
 				w.WriteHeader(http.StatusTooManyRequests)
 
 				return
 			}
+
+			next.ServeHTTP(w, r)
 		})
 	}
 }

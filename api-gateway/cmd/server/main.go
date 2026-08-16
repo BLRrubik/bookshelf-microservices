@@ -59,7 +59,7 @@ func main() {
 	r.Use(middleware.Logging)
 	r.Use(middleware.RateLimitMiddleware(&middleware.RateLimitConfig{
 		Limiter: rateLimiter,
-		Limit:   3,
+		Limit:   25,
 	}))
 
 	handlers.RegisterRoutes(r)
