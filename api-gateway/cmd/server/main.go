@@ -4,6 +4,7 @@ import (
 	"bookshelf/api-gateway/internal/cache"
 	"bookshelf/api-gateway/internal/config"
 	"bookshelf/api-gateway/internal/handler"
+	"bookshelf/api-gateway/internal/logger"
 	"bookshelf/api-gateway/internal/middleware"
 	"bookshelf/api-gateway/internal/proxy"
 	"bookshelf/api-gateway/internal/ratelimit"
@@ -20,6 +21,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -27,13 +29,7 @@ func main() {
 
 	cfg := config.Load()
 
-	var logHandler slog.Handler
-	if cfg.LogFormat == "text" {
-		logHandler = slog.NewTextHandler(os.Stdout, nil)
-	} else {
-		logHandler = slog.NewJSONHandler(os.Stdout, nil)
-	}
-	slog.SetDefault(slog.New(logHandler))
+	lgr := logger.New("info")
 
 	opts, err := redis.ParseURL(cfg.RedisURL)
 	if err != nil {
@@ -48,10 +44,9 @@ func main() {
 	}
 
 	cacheClient := cache.New(redisClient)
-	rateLimiter := ratelimit.New(redisClient, 10*time.Second)
+	rateLimiter := ratelimit.New(redisClient, 60*time.Second)
 
 	_ = cacheClient
-	_ = rateLimiter
 
 	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL)
 	handlers := handler.NewHandler(proxyService)
@@ -62,6 +57,10 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(middleware.Logging)
+	r.Use(middleware.RateLimitMiddleware(&middleware.RateLimitConfig{
+		Limiter: rateLimiter,
+		Limit:   3,
+	}))
 
 	handlers.RegisterRoutes(r)
 
@@ -74,7 +73,7 @@ func main() {
 	}
 
 	go func() {
-		slog.Info("server listening", "addr", cfg.Port)
+		lgr.Info("server listening", zap.String("addr", cfg.Port))
 
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("server failed", "error", err)
@@ -87,14 +86,14 @@ func main() {
 
 	<-termChan
 
-	slog.Info("shutdown signal received")
+	lgr.Info("shutdown signal received")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := server.Shutdown(ctx); err != nil {
-		slog.Error("graceful shutdown failed", "error", err)
+	if err = server.Shutdown(ctx); err != nil {
+		lgr.Error("graceful shutdown failed", zap.Error(err))
 	} else {
-		slog.Info("graceful shutdown complete")
+		lgr.Info("graceful shutdown complete")
 	}
 }
