@@ -33,25 +33,19 @@ func (r *RateLimiter) Allow(ctx context.Context, key string, limit int) (*Result
 		return nil, err
 	}
 
-	ttl := r.window
-	switch {
-	case rate == 1:
+	if rate == 1 {
 		r.client.Expire(ctx, fullKey, r.window)
-	default:
-		if remaining, err := r.client.TTL(ctx, fullKey).Result(); err == nil && remaining > 0 {
-			ttl = remaining
-		}
 	}
 
-	remaining := limit - int(rate)
-	if remaining < 0 {
-		remaining = 0
+	remainingTTL, err := r.client.TTL(ctx, fullKey).Result()
+	if err != nil {
+		return nil, err
 	}
 
 	return &Result{
 		Allowed:   rate <= int64(limit),
 		Limit:     limit,
-		Remaining: remaining,
-		ResetAt:   time.Now().Add(ttl),
+		Remaining: limit - int(rate),
+		ResetAt:   time.Now().Add(remainingTTL),
 	}, nil
 }
