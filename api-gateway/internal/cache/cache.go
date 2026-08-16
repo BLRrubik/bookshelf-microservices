@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -37,5 +38,5 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 func (c *Cache) GenerateKey(prefix, path, query string) string {
 	hash := sha256.Sum256([]byte(path + query))
 
-	return fmt.Sprintf("%s:%s", prefix, string(hash[:]))
+	return fmt.Sprintf("%s:%s", prefix, hex.EncodeToString(hash[:])[:16])
 }
