@@ -19,6 +19,11 @@ type RateLimitConfig struct {
 func RateLimitMiddleware(cfg *RateLimitConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if SkipRateLimitPaths(r) {
+				next.ServeHTTP(w, r)
+
+				return
+			}
 
 			key, limit := getRateLimitKeyAndLimit(r, cfg)
 			res, err := cfg.Limiter.Allow(r.Context(), key, limit)
@@ -50,7 +55,7 @@ func setRateLimitHeader(w http.ResponseWriter, limit, remaining int, resetAt tim
 
 func getRateLimitKeyAndLimit(r *http.Request, cfg *RateLimitConfig) (string, int) {
 	ip := getClientIP(r)
-	if strings.Contains(r.RequestURI, "/cover") {
+	if strings.Contains(r.RequestURI, "/cover") && r.Method == "POST" {
 		return fmt.Sprintf("cover:ip:%s", ip), cfg.UploadLimit
 	}
 
@@ -61,7 +66,7 @@ func getRateLimitKeyAndLimit(r *http.Request, cfg *RateLimitConfig) (string, int
 
 	token := strings.TrimPrefix(authHdr, "Bearer ")
 
-	return fmt.Sprintf("auth:ip:%s", token[:7]), cfg.UploadLimit
+	return fmt.Sprintf("auth:ip:%s", token[:7]), cfg.AuthorizedLimit
 }
 
 func getClientIP(r *http.Request) string {
@@ -76,4 +81,14 @@ func getClientIP(r *http.Request) string {
 	}
 
 	return r.RemoteAddr
+}
+
+func SkipRateLimitPaths(r *http.Request) bool {
+	switch {
+	case strings.Contains(r.RequestURI, "/health"),
+		strings.Contains(r.RequestURI, "/ready"):
+		return true
+	default:
+		return false
+	}
 }
