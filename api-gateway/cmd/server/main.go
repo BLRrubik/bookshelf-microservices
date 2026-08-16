@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bookshelf/api-gateway/internal/cache"
 	"bookshelf/api-gateway/internal/config"
 	"bookshelf/api-gateway/internal/handler"
 	"bookshelf/api-gateway/internal/middleware"
 	"bookshelf/api-gateway/internal/proxy"
 	"context"
 	"errors"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -28,6 +30,12 @@ func main() {
 		logHandler = slog.NewJSONHandler(os.Stdout, nil)
 	}
 	slog.SetDefault(slog.New(logHandler))
+
+	cacheClient, err := cache.New(cfg.RedisURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer cacheClient.Close()
 
 	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL)
 	handlers := handler.NewHandler(proxyService)
