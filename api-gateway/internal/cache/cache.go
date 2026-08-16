@@ -2,6 +2,8 @@ package cache
 
 import (
 	"context"
+	"crypto/sha256"
+	"fmt"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -30,4 +32,10 @@ func (c *Cache) Set(ctx context.Context, key string, value []byte, ttl time.Dura
 
 func (c *Cache) Delete(ctx context.Context, key string) error {
 	return c.client.Del(ctx, key).Err()
+}
+
+func (c *Cache) GenerateKey(prefix, path, query string) string {
+	hash := sha256.Sum256([]byte(path + query))
+
+	return fmt.Sprintf("%s:%s", prefix, string(hash[:]))
 }
