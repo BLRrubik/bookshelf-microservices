@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"bookshelf/api-gateway/internal/ratelimit"
+	"bookshelf/api-gateway/internal/utils"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -59,12 +60,10 @@ func getRateLimitKeyAndLimit(r *http.Request, cfg *RateLimitConfig) (string, int
 		return fmt.Sprintf("cover:ip:%s", ip), cfg.UploadLimit
 	}
 
-	authHdr := r.Header.Get("Authorization")
-	if authHdr == "" || !strings.HasPrefix(authHdr, "Bearer ") {
+	token := utils.ExtractBearerToken(r)
+	if token == "" {
 		return fmt.Sprintf("anon:ip:%s", ip), cfg.AnonymousLimit
 	}
-
-	token := strings.TrimPrefix(authHdr, "Bearer ")
 
 	return fmt.Sprintf("auth:ip:%s", token[:7]), cfg.AuthorizedLimit
 }

@@ -46,7 +46,7 @@ func main() {
 	cacheClient := cache.New(redisClient)
 	rateLimiter := ratelimit.New(redisClient, 60*time.Second)
 
-	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL)
+	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL, cfg.ServiceKey)
 	handlers := handler.NewHandler(proxyService, cacheClient, time.Minute)
 
 	r := chi.NewRouter()

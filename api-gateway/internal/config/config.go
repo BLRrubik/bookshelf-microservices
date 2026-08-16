@@ -8,6 +8,7 @@ type Config struct {
 	BooksServiceURL string
 	LogFormat       string
 	RedisURL        string
+	ServiceKey      string
 }
 
 func Load() *Config {
@@ -17,6 +18,7 @@ func Load() *Config {
 		BooksServiceURL: os.Getenv("BOOKS_SERVICE_URL"),
 		LogFormat:       os.Getenv("LOG_FORMAT"),
 		RedisURL:        os.Getenv("REDIS_URL"),
+		ServiceKey:      os.Getenv("SERVICE_KEY"),
 	}
 
 	config.normalize()
@@ -43,5 +45,9 @@ func (c *Config) normalize() {
 
 	if c.RedisURL == "" {
 		c.RedisURL = "redis://localhost:6379"
+	}
+
+	if c.ServiceKey == "" {
+		c.ServiceKey = "serviceKey"
 	}
 }

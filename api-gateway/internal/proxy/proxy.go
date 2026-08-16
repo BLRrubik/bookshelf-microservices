@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bookshelf/api-gateway/internal/domain"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -20,16 +21,62 @@ type ServiceProxy struct {
 	client          *http.Client
 	authServiceURL  string
 	booksServiceURL string
+	serviceKey      string
 }
 
-func New(authURL, booksURL string) *ServiceProxy {
+func New(authURL, booksURL, serviceKey string) *ServiceProxy {
 	return &ServiceProxy{
 		client: &http.Client{
 			Timeout: time.Second * 10,
 		},
 		authServiceURL:  authURL,
 		booksServiceURL: booksURL,
+		serviceKey:      serviceKey,
 	}
+}
+
+type verifyTokenResponse struct {
+	Valid  bool   `json:"valid"`
+	UserID string `json:"user_id"`
+}
+
+// VerifyToken asks auth-service's internal API whether token is valid,
+// returning the associated user ID.
+func (p *ServiceProxy) VerifyToken(ctx context.Context, token string) (string, error) {
+	reqBody, err := json.Marshal(map[string]string{"token": token})
+	if err != nil {
+		return "", fmt.Errorf("marshal verify request: %w", err)
+	}
+
+	url := strings.TrimRight(p.authServiceURL, "/") + "/internal/v1/auth/verify"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(reqBody))
+	if err != nil {
+		return "", fmt.Errorf("create verify request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Service-Key", p.serviceKey)
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("verify token request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("verify token: unexpected status %d", resp.StatusCode)
+	}
+
+	var result verifyTokenResponse
+	if err = json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", fmt.Errorf("decode verify response: %w", err)
+	}
+
+	if !result.Valid {
+		return "", errors.New("invalid token")
+	}
+
+	return result.UserID, nil
 }
 
 func (p *ServiceProxy) ProxyAuthPath(w http.ResponseWriter, r *http.Request, path string) int {
