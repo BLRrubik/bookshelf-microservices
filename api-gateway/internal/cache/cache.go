@@ -35,6 +35,20 @@ func (c *Cache) Delete(ctx context.Context, key string) error {
 	return c.client.Del(ctx, key).Err()
 }
 
+// DeletePattern removes all keys matching pattern using SCAN (not KEYS),
+// so it doesn't block Redis on large keyspaces.
+func (c *Cache) DeletePattern(ctx context.Context, pattern string) error {
+	iter := c.client.Scan(ctx, 0, pattern, 0).Iterator()
+
+	for iter.Next(ctx) {
+		if err := c.client.Del(ctx, iter.Val()).Err(); err != nil {
+			return err
+		}
+	}
+
+	return iter.Err()
+}
+
 func (c *Cache) GenerateKey(prefix, path, query string) string {
 	hash := sha256.Sum256([]byte(path + query))
 

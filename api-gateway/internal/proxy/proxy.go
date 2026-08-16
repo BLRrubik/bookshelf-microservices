@@ -32,27 +32,27 @@ func New(authURL, booksURL string) *ServiceProxy {
 	}
 }
 
-func (p *ServiceProxy) ProxyAuthPath(w http.ResponseWriter, r *http.Request, path string) {
-	p.ProxyRequest(w, r, joinPath(p.authServiceURL, path, r.URL.RawQuery))
+func (p *ServiceProxy) ProxyAuthPath(w http.ResponseWriter, r *http.Request, path string) int {
+	return p.ProxyRequest(w, r, joinPath(p.authServiceURL, path, r.URL.RawQuery))
 }
 
-func (p *ServiceProxy) ProxyBooksPath(w http.ResponseWriter, r *http.Request, path string) {
-	p.ProxyRequest(w, r, joinPath(p.booksServiceURL, path, r.URL.RawQuery))
+func (p *ServiceProxy) ProxyBooksPath(w http.ResponseWriter, r *http.Request, path string) int {
+	return p.ProxyRequest(w, r, joinPath(p.booksServiceURL, path, r.URL.RawQuery))
 }
 
-func (p *ServiceProxy) ProxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) {
+func (p *ServiceProxy) ProxyRequest(w http.ResponseWriter, r *http.Request, targetURL string) int {
 	req, err := p.newUpstreamRequest(r, targetURL)
 	if err != nil {
 		p.handleProxyError(w, r, targetURL, err)
 
-		return
+		return 0
 	}
 
 	response, err := p.client.Do(req)
 	if err != nil {
 		p.handleProxyError(w, r, targetURL, err)
 
-		return
+		return 0
 	}
 	defer response.Body.Close()
 
@@ -67,6 +67,8 @@ func (p *ServiceProxy) ProxyRequest(w http.ResponseWriter, r *http.Request, targ
 			"error", err,
 		)
 	}
+
+	return response.StatusCode
 }
 
 func (p *ServiceProxy) newUpstreamRequest(r *http.Request, targetURL string) (*http.Request, error) {

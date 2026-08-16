@@ -47,7 +47,7 @@ func main() {
 	rateLimiter := ratelimit.New(redisClient, 60*time.Second)
 
 	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL)
-	handlers := handler.NewHandler(proxyService)
+	handlers := handler.NewHandler(proxyService, cacheClient, time.Minute)
 
 	r := chi.NewRouter()
 
@@ -60,11 +60,6 @@ func main() {
 		AnonymousLimit:  100,
 		AuthorizedLimit: 1000,
 		UploadLimit:     10,
-	}))
-	r.Use(middleware.CacheMiddleware(&middleware.CacheConfig{
-		Cache:     cacheClient,
-		KeyPrefix: "cache",
-		TTL:       time.Minute,
 	}))
 
 	handlers.RegisterRoutes(r)
