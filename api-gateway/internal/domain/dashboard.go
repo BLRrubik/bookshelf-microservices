@@ -32,18 +32,6 @@ type UserStats struct {
 	TotalReviews   int `json:"total_reviews"`
 }
 
-type BookListResponse struct {
-	Data       []BookSummary `json:"data"`
-	Pagination Pagination    `json:"pagination"`
-}
-
-type Pagination struct {
-	Page       int `json:"page"`
-	Limit      int `json:"limit"`
-	Total      int `json:"total"`
-	TotalPages int `json:"total_pages"`
-}
-
 type DashboardResponse struct {
 	PopularBooks  []BookSummary  `json:"popular_books"`
 	RecentReviews []RecentReview `json:"recent_reviews"`

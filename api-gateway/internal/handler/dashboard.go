@@ -127,27 +127,13 @@ func (h *DashboardHandler) fetchPopularBooks(ctx context.Context, token string) 
 		return nil
 	}
 
-	var booksResp domain.BookListResponse
+	var booksResp domain.ResponseWithPagination[domain.BookSummary]
 	err = json.Unmarshal(body, &booksResp)
 	if err != nil {
 		return nil
 	}
 
 	return booksResp.Data
-}
-
-type reviewsResponse struct {
-	Data []struct {
-		ID        string    `json:"id"`
-		BookID    string    `json:"book_id"`
-		Rating    int       `json:"rating"`
-		Content   string    `json:"content"`
-		CreatedAt time.Time `json:"created_at"`
-		User      struct {
-			ID       string `json:"id"`
-			Username string `json:"username"`
-		} `json:"user"`
-	} `json:"data"`
 }
 
 func (h *DashboardHandler) fetchRecentReviews(ctx context.Context, token string) []domain.RecentReview {
@@ -184,7 +170,7 @@ func (h *DashboardHandler) fetchRecentReviews(ctx context.Context, token string)
 			continue
 		}
 
-		var reviews reviewsResponse
+		var reviews domain.ResponseWithPagination[domain.RecentReview]
 		if err = json.Unmarshal(rBody, &reviews); err != nil {
 			continue
 		}
@@ -194,18 +180,10 @@ func (h *DashboardHandler) fetchRecentReviews(ctx context.Context, token string)
 				break
 			}
 
-			result = append(result, domain.RecentReview{
-				ID:        rv.ID,
-				BookID:    rv.BookID,
-				BookTitle: book.Title,
-				Rating:    rv.Rating,
-				Content:   truncateContent(rv.Content, 200),
-				User: domain.UserInfo{
-					ID:       rv.User.ID,
-					Username: rv.User.Username,
-				},
-				CreatedAt: rv.CreatedAt,
-			})
+			rv.BookTitle = book.Title
+			rv.Content = truncateContent(rv.Content, 200)
+
+			result = append(result, rv)
 		}
 	}
 
