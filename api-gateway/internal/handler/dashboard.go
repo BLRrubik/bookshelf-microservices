@@ -8,8 +8,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -244,6 +247,98 @@ func (h *DashboardHandler) fetchTotal(ctx context.Context, url string, headers m
 	}
 
 	return resp.Total, nil
+}
+
+func (h *DashboardHandler) GlobalSearch(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	if utf8.RuneCountInString(q) < 2 {
+		writeSearchError(w, http.StatusBadRequest, "INVALID_QUERY", "Search query must be at least 2 characters")
+
+		return
+	}
+
+	limit := 10
+
+	if limitParam := r.URL.Query().Get("limit"); limitParam != "" {
+		parsedLimit, err := strconv.Atoi(limitParam)
+		if err != nil || parsedLimit < 1 || parsedLimit > 50 {
+			writeSearchError(w, http.StatusBadRequest, "INVALID_LIMIT", "Limit must be between 1 and 50")
+
+			return
+		}
+
+		limit = parsedLimit
+	}
+
+	cacheKey := "search:" + q + ":" + strconv.Itoa(limit)
+
+	if cached, err := h.cache.Get(ctx, cacheKey); err == nil {
+		w.Header().Set("X-Cache", "HIT")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(cached)
+
+		return
+	}
+
+	headers := map[string]string{
+		"Content-Type": "application/json",
+	}
+
+	searchURL := "/api/v1/books?search=" + url.QueryEscape(q) + "&limit=" + strconv.Itoa(limit)
+
+	code, body, err := h.proxy.GetWithCacheBooksPath(ctx, searchURL, headers)
+	if err != nil {
+		writeSearchError(w, http.StatusBadGateway, "BAD_GATEWAY", "Backend service unavailable")
+
+		return
+	}
+
+	if code != http.StatusOK {
+		writeSearchError(w, http.StatusBadGateway, "BAD_GATEWAY", "Backend service unavailable")
+
+		return
+	}
+
+	var booksResp domain.ResponseWithPagination[domain.BookSummary]
+	if err = json.Unmarshal(body, &booksResp); err != nil {
+		writeSearchError(w, http.StatusBadGateway, "BAD_GATEWAY", "Invalid response from backend service")
+
+		return
+	}
+
+	if booksResp.Data == nil {
+		booksResp.Data = []domain.BookSummary{}
+	}
+
+	searchResp := domain.SearchResponse{
+		Books: booksResp.Data,
+		Total: booksResp.Pagination.Total,
+	}
+
+	respBytes, err := json.Marshal(searchResp)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	if err = h.cache.Set(ctx, cacheKey, respBytes, h.ttl); err != nil {
+		slog.WarnContext(ctx, "set search cache", "error", err)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Cache", "MISS")
+	w.WriteHeader(http.StatusOK)
+	w.Write(respBytes)
+}
+
+func writeSearchError(w http.ResponseWriter, status int, code, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(domain.ErrorResponse{Code: code, Message: message})
 }
 
 func (h *DashboardHandler) fetchReviewCount(ctx context.Context, url string, headers map[string]string) (int, error) {

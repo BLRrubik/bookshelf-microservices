@@ -37,3 +37,8 @@ type DashboardResponse struct {
 	RecentReviews []RecentReview `json:"recent_reviews"`
 	UserStats     *UserStats     `json:"user_stats"`
 }
+
+type SearchResponse struct {
+	Books []BookSummary `json:"books"`
+	Total int           `json:"total"`
+}

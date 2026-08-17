@@ -152,7 +152,7 @@ func (br *BookRepository) List(ctx context.Context, params domain.ListParams) ([
 		return nil, 0, fmt.Errorf("list books: %w", err)
 	}
 
-	err = br.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM books")
+	err = br.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM books WHERE title ILIKE $1", "%"+params.Search+"%")
 	if err != nil {
 		return nil, 0, fmt.Errorf("count books: %w", err)
 	}
@@ -179,7 +179,10 @@ func (br *BookRepository) ListByUserID(ctx context.Context, userID string, param
 		return nil, 0, fmt.Errorf("list books by user: %w", err)
 	}
 
-	err = br.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM books")
+	err = br.db.GetContext(
+		ctx, &count, "SELECT COUNT(*) FROM books WHERE created_by = $1 AND title ILIKE $2",
+		userID, "%"+params.Search+"%",
+	)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count books: %w", err)
 	}

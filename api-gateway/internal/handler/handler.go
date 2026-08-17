@@ -53,6 +53,7 @@ func (h *Handler) RegisterRoutes(r chi.Router) {
 	})
 
 	r.Get("/api/v1/dashboard", h.dashboardHandler.GetDashboard)
+	r.Get("/api/v1/search", h.dashboardHandler.GlobalSearch)
 
 	r.Route("/api/v1/auth", func(r chi.Router) {
 		r.Post("/register", h.authHandler.Register)
