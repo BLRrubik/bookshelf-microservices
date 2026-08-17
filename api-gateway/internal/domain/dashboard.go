@@ -3,33 +3,45 @@ package domain
 import "time"
 
 type BookSummary struct {
-	ID       string
-	Title    string
-	Author   string
-	Rating   float64
-	CoverURL string
+	ID       string  `json:"id"`
+	Title    string  `json:"title"`
+	Author   string  `json:"author"`
+	Rating   float64 `json:"rating"`
+	CoverURL string  `json:"cover_url"`
 }
 
 type RecentReview struct {
-	ID        string
-	BookID    string
-	BookTitle string
-	Rating    int
-	Content   string
-	User      UserInfo
-	CreatedAt time.Time
+	ID        string    `json:"id"`
+	BookID    string    `json:"book_id"`
+	BookTitle string    `json:"book_title"`
+	Rating    int       `json:"rating"`
+	Content   string    `json:"content"`
+	User      UserInfo  `json:"user"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 type UserInfo struct {
-	ID       string
-	Username string
+	ID       string `json:"id"`
+	Username string `json:"username"`
 }
 
 type UserStats struct {
-	BooksAdded     int
-	ReviewsWritten int
-	TotalBooks     int
-	TotalReviews   int
+	BooksAdded     int `json:"books_added"`
+	ReviewsWritten int `json:"reviews_written"`
+	TotalBooks     int `json:"total_books"`
+	TotalReviews   int `json:"total_reviews"`
+}
+
+type BookListResponse struct {
+	Data       []BookSummary `json:"data"`
+	Pagination Pagination    `json:"pagination"`
+}
+
+type Pagination struct {
+	Page       int `json:"page"`
+	Limit      int `json:"limit"`
+	Total      int `json:"total"`
+	TotalPages int `json:"total_pages"`
 }
 
 type DashboardResponse struct {

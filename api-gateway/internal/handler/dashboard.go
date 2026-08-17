@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"time"
 	"unicode/utf8"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type DashboardHandler struct {
@@ -28,6 +30,8 @@ func (h *DashboardHandler) GetDashboard(w http.ResponseWriter, r *http.Request) 
 	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
 	defer cancel()
 
+	authToken := r.Header.Get("Authorization")
+
 	var userID string
 	if token := utils.ExtractBearerToken(r); token != "" {
 		userID = h.verifyToken(ctx, token)
@@ -43,8 +47,48 @@ func (h *DashboardHandler) GetDashboard(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	var dashboardResp domain.DashboardResponse
+
+	group, groupCtx := errgroup.WithContext(ctx)
+	group.Go(func() error {
+		dashboardResp.PopularBooks = h.fetchPopularBooks(groupCtx, authToken)
+
+		return nil
+	})
+	group.Go(func() error {
+		dashboardResp.RecentReviews = h.fetchRecentReviews(groupCtx, authToken)
+
+		return nil
+	})
+	if userID != "" {
+		group.Go(func() error {
+			dashboardResp.UserStats = h.fetchUserStats(groupCtx, authToken, userID)
+
+			return nil
+		})
+	}
+
+	group.Wait()
+
+	if dashboardResp.PopularBooks == nil {
+		dashboardResp.PopularBooks = []domain.BookSummary{}
+	}
+
+	if dashboardResp.RecentReviews == nil {
+		dashboardResp.RecentReviews = []domain.RecentReview{}
+	}
+
+	bytes, err := json.Marshal(dashboardResp)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("X-Cache", "MISS")
 	w.WriteHeader(http.StatusOK)
+	w.Write(bytes)
 }
 
 func dashboardCacheKey(userID string) string {
@@ -83,13 +127,13 @@ func (h *DashboardHandler) fetchPopularBooks(ctx context.Context, token string) 
 		return nil
 	}
 
-	var books []domain.BookSummary
-	err = json.Unmarshal(body, &books)
+	var booksResp domain.BookListResponse
+	err = json.Unmarshal(body, &booksResp)
 	if err != nil {
 		return nil
 	}
 
-	return books
+	return booksResp.Data
 }
 
 type reviewsResponse struct {
@@ -178,12 +222,6 @@ func truncateContent(content string, maxRunes int) string {
 	return string(runes[:maxRunes]) + "..."
 }
 
-type paginatedResponse struct {
-	Pagination struct {
-		Total int `json:"total"`
-	} `json:"pagination"`
-}
-
 func (h *DashboardHandler) fetchUserStats(ctx context.Context, token, userID string) *domain.UserStats {
 	headers := map[string]string{
 		"Content-Type":  "application/json",
@@ -222,12 +260,12 @@ func (h *DashboardHandler) fetchTotal(ctx context.Context, url string, headers m
 		return 0, errors.New("invalid status code: " + strconv.Itoa(code))
 	}
 
-	var resp paginatedResponse
+	var resp domain.Pagination
 	if err = json.Unmarshal(body, &resp); err != nil {
 		return 0, err
 	}
 
-	return resp.Pagination.Total, nil
+	return resp.Total, nil
 }
 
 func (h *DashboardHandler) fetchReviewCount(ctx context.Context, url string, headers map[string]string) (int, error) {

@@ -107,7 +107,7 @@ func (b *ListParams) Normalize() {
 		b.Limit = 10
 	}
 
-	if b.Sort != "" {
+	if b.Sort == "" {
 		b.Sort = "title"
 	}
 

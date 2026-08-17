@@ -72,6 +72,22 @@ WHERE id = $1
 `
 )
 
+var allowedBookSortColumns = map[string]string{
+	"title":          "b.title",
+	"author":         "b.author",
+	"published_year": "b.published_year",
+	"created_at":     "b.created_at",
+	"rating":         "average_rating",
+}
+
+func sortColumn(sort string) string {
+	if col, ok := allowedBookSortColumns[sort]; ok {
+		return col
+	}
+
+	return "b.title"
+}
+
 type BookRepository struct {
 	db *sqlx.DB
 }
@@ -123,10 +139,11 @@ func (br *BookRepository) List(ctx context.Context, params domain.ListParams) ([
 
 	offset := (params.Page - 1) * params.Limit
 
+	query := fmt.Sprintf(listBooksQuery, sortColumn(params.Sort), params.Order)
 	err := br.db.SelectContext(
 		ctx,
 		&books,
-		fmt.Sprintf(listBooksQuery, params.Sort, params.Order),
+		query,
 		"%"+params.Search+"%",
 		params.Limit,
 		offset,
@@ -152,7 +169,7 @@ func (br *BookRepository) ListByUserID(ctx context.Context, userID string, param
 	err := br.db.SelectContext(
 		ctx,
 		&books,
-		fmt.Sprintf(listBooksByUserIDQuery, params.Sort, params.Order),
+		fmt.Sprintf(listBooksByUserIDQuery, sortColumn(params.Sort), params.Order),
 		userID,
 		"%"+params.Search+"%",
 		params.Limit,
