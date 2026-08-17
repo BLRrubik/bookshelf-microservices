@@ -167,6 +167,8 @@ services:
   # Frontend Application
   frontend:
     build: ./frontend
+    ports:
+      - "5176:80"
     depends_on:
       api-gateway:
         condition: service_healthy
