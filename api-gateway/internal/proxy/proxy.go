@@ -118,6 +118,46 @@ func (p *ServiceProxy) ProxyRequest(w http.ResponseWriter, r *http.Request, targ
 	return response.StatusCode
 }
 
+func (p *ServiceProxy) GetWithCacheBooksPath(
+	ctx context.Context,
+	url string,
+	headers map[string]string,
+) (statusCode int, body []byte, err error) {
+	return p.GetWithCache(ctx, p.booksServiceURL+url, headers)
+}
+
+func (p *ServiceProxy) GetWithCacheAuthPath(
+	ctx context.Context,
+	url string,
+	headers map[string]string,
+) (statusCode int, body []byte, err error) {
+	return p.GetWithCache(ctx, p.authServiceURL+url, headers)
+}
+
+func (p *ServiceProxy) GetWithCache(ctx context.Context, url string, headers map[string]string) (statusCode int, body []byte, err error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return 0, nil, fmt.Errorf("create request: %w", err)
+	}
+
+	for k, v := range headers {
+		req.Header.Set(k, v)
+	}
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return 0, nil, fmt.Errorf("get request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	buf, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return 0, nil, fmt.Errorf("read response body: %w", err)
+	}
+
+	return resp.StatusCode, buf, nil
+}
+
 func (p *ServiceProxy) newUpstreamRequest(r *http.Request, targetURL string) (*http.Request, error) {
 	out, err := http.NewRequestWithContext(
 		r.Context(),

@@ -2,9 +2,11 @@ package handler
 
 import (
 	"bookshelf/api-gateway/internal/cache"
+	"bookshelf/api-gateway/internal/domain"
 	"bookshelf/api-gateway/internal/proxy"
 	"bookshelf/api-gateway/internal/utils"
 	"context"
+	"encoding/json"
 	"net/http"
 	"time"
 )
@@ -61,4 +63,77 @@ func (h *DashboardHandler) verifyToken(ctx context.Context, token string) string
 	}
 
 	return userID
+}
+
+func (h *DashboardHandler) fetchPopularBooks(ctx context.Context, token string) []domain.BookSummary {
+	headers := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": token,
+	}
+
+	code, body, err := h.proxy.GetWithCacheBooksPath(ctx, "/api/v1/books?sort=rating&order=desc&limit=10", headers)
+	if err != nil {
+		return nil
+	}
+
+	if code != http.StatusOK {
+		return nil
+	}
+
+	var books []domain.BookSummary
+	err = json.Unmarshal(body, &books)
+	if err != nil {
+		return nil
+	}
+
+	return books
+}
+
+type paginatedResponse struct {
+	Pagination struct {
+		Total int `json:"total"`
+	} `json:"pagination"`
+}
+
+func (h *DashboardHandler) fetchUserStats(ctx context.Context, token, userID string) domain.UserStats {
+	headers := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": token,
+	}
+
+	var stats domain.UserStats
+
+	stats.BooksAdded = h.fetchTotal(ctx, "/api/v1/books?created_by="+userID+"&limit=1", headers)
+	stats.ReviewsWritten = h.fetchReviewCount(ctx, "/api/v1/users/"+userID+"/reviews?limit=1", headers)
+	stats.TotalBooks = h.fetchTotal(ctx, "/api/v1/books?limit=1", headers)
+
+	return stats
+}
+
+func (h *DashboardHandler) fetchTotal(ctx context.Context, url string, headers map[string]string) int {
+	code, body, err := h.proxy.GetWithCacheBooksPath(ctx, url, headers)
+	if err != nil || code != http.StatusOK {
+		return 0
+	}
+
+	var resp paginatedResponse
+	if err = json.Unmarshal(body, &resp); err != nil {
+		return 0
+	}
+
+	return resp.Pagination.Total
+}
+
+func (h *DashboardHandler) fetchReviewCount(ctx context.Context, url string, headers map[string]string) int {
+	code, body, err := h.proxy.GetWithCacheBooksPath(ctx, url, headers)
+	if err != nil || code != http.StatusOK {
+		return 0
+	}
+
+	var reviews []json.RawMessage
+	if err = json.Unmarshal(body, &reviews); err != nil {
+		return 0
+	}
+
+	return len(reviews)
 }
