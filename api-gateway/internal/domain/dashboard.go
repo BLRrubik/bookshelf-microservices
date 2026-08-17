@@ -21,5 +21,5 @@ type UserStats struct {
 type DashboardResponse struct {
 	PopularBooks  []BookSummary  `json:"popular_books"`
 	RecentReviews []RecentReview `json:"recent_reviews"`
-	UserStats     UserStats      `json:"user_stats"`
+	UserStats     *UserStats     `json:"user_stats"`
 }
