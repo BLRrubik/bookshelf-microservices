@@ -7,7 +7,9 @@ import (
 	"bookshelf/api-gateway/internal/utils"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -95,45 +97,66 @@ type paginatedResponse struct {
 	} `json:"pagination"`
 }
 
-func (h *DashboardHandler) fetchUserStats(ctx context.Context, token, userID string) domain.UserStats {
+func (h *DashboardHandler) fetchUserStats(ctx context.Context, token, userID string) *domain.UserStats {
 	headers := map[string]string{
 		"Content-Type":  "application/json",
 		"Authorization": token,
 	}
 
-	var stats domain.UserStats
+	booksAdded, err := h.fetchTotal(ctx, "/api/v1/books?created_by="+userID+"&limit=1", headers)
+	if err != nil {
+		return nil
+	}
 
-	stats.BooksAdded = h.fetchTotal(ctx, "/api/v1/books?created_by="+userID+"&limit=1", headers)
-	stats.ReviewsWritten = h.fetchReviewCount(ctx, "/api/v1/users/"+userID+"/reviews?limit=1", headers)
-	stats.TotalBooks = h.fetchTotal(ctx, "/api/v1/books?limit=1", headers)
+	reviewsWritten, err := h.fetchReviewCount(ctx, "/api/v1/users/"+userID+"/reviews?limit=1", headers)
+	if err != nil {
+		return nil
+	}
 
-	return stats
+	totalBooks, err := h.fetchTotal(ctx, "/api/v1/books?limit=1", headers)
+	if err != nil {
+		return nil
+	}
+
+	return &domain.UserStats{
+		TotalBooks:     totalBooks,
+		ReviewsWritten: reviewsWritten,
+		BooksAdded:     booksAdded,
+	}
 }
 
-func (h *DashboardHandler) fetchTotal(ctx context.Context, url string, headers map[string]string) int {
+func (h *DashboardHandler) fetchTotal(ctx context.Context, url string, headers map[string]string) (int, error) {
 	code, body, err := h.proxy.GetWithCacheBooksPath(ctx, url, headers)
-	if err != nil || code != http.StatusOK {
-		return 0
+	if err != nil {
+		return 0, err
+	}
+
+	if code != http.StatusOK {
+		return 0, errors.New("invalid status code: " + strconv.Itoa(code))
 	}
 
 	var resp paginatedResponse
 	if err = json.Unmarshal(body, &resp); err != nil {
-		return 0
+		return 0, err
 	}
 
-	return resp.Pagination.Total
+	return resp.Pagination.Total, nil
 }
 
-func (h *DashboardHandler) fetchReviewCount(ctx context.Context, url string, headers map[string]string) int {
+func (h *DashboardHandler) fetchReviewCount(ctx context.Context, url string, headers map[string]string) (int, error) {
 	code, body, err := h.proxy.GetWithCacheBooksPath(ctx, url, headers)
-	if err != nil || code != http.StatusOK {
-		return 0
+	if err != nil {
+		return 0, err
+	}
+
+	if code != http.StatusOK {
+		return 0, errors.New("invalid status code: " + strconv.Itoa(code))
 	}
 
 	var reviews []json.RawMessage
 	if err = json.Unmarshal(body, &reviews); err != nil {
-		return 0
+		return 0, err
 	}
 
-	return len(reviews)
+	return len(reviews), nil
 }
