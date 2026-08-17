@@ -6,8 +6,6 @@ services:
       POSTGRES_DB: auth
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5432:5432"
     volumes:
       - ./auth-service/migrations:/docker-entrypoint-initdb.d:ro
       - auth_postgres_data:/var/lib/postgresql/data
@@ -24,8 +22,6 @@ services:
       POSTGRES_DB: books
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    ports:
-      - "5433:5432"
     volumes:
       - ./books-service/migrations:/docker-entrypoint-initdb.d:ro
       - books_postgres_data:/var/lib/postgresql/data
@@ -38,8 +34,6 @@ services:
   # Redis for caching and rate limiting
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -54,9 +48,6 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
-    ports:
-      - "5672:5672"
-      - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -72,23 +63,112 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
     volumes:
       - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Auth Service
+  auth-service:
+    build: ./auth-service
+    environment:
+      PORT: ":8081"
+      DATABASE_URL: "postgres://postgres:postgres@auth-postgres:5432/auth?sslmode=disable"
+      JWT_SECRET: "secret"
+      SERVICE_KEY: "serviceKey"
+      LOG_LEVEL: "info"
+    depends_on:
+      auth-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Books Service
+  books-service:
+    build: ./books-service
+    environment:
+      PORT: ":8082"
+      DATABASE_URL: "postgres://postgres:postgres@books-postgres:5432/books?sslmode=disable"
+      AUTH_SERVICE_URL: "http://auth-service:8081"
+      SERVICE_KEY: "serviceKey"
+      LOG_LEVEL: "info"
+    depends_on:
+      books-postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8082/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Worker Service (cover processing)
+  worker-service:
+    build: ./worker-service
+    environment:
+      PORT: ":8083"
+      RABBITMQ_URL: "amqp://guest:guest@rabbitmq:5672/"
+      MINIO_URL: "minio:9000"
+      MINIO_PUBLIC_ENDPOINT: "http://localhost:9000"
+      MINIO_USE_SSL: "false"
+      MINIO_ACCESS: "minioadmin"
+      MINIO_SECRET: "minioadmin"
+      MINIO_BUCKET: "bookshelf-covers"
+      DATABASE_URL: "postgres://postgres:postgres@books-postgres:5432/books?sslmode=disable"
+      LOG_LEVEL: "info"
+    depends_on:
+      books-postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8083/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # API Gateway — единственный сервис, доступный извне
+  api-gateway:
+    build: ./api-gateway
+    ports:
+      - "8000:8000"
+    environment:
+      PORT: ":8000"
+      AUTH_SERVICE_URL: "http://auth-service:8081"
+      BOOKS_SERVICE_URL: "http://books-service:8082"
+      REDIS_URL: "redis://redis:6379"
+      SERVICE_KEY: "serviceKey"
+      LOG_FORMAT: "text"
+      APP_VERSION: "1.0.0"
+    depends_on:
+      redis:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+      books-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # Frontend Application
   frontend:
     build: ./frontend
-    ports:
-      - "5176:80"
     depends_on:
-      auth-postgres:
-        condition: service_healthy
-      books-postgres:
-        condition: service_healthy
-      redis:
+      api-gateway:
         condition: service_healthy
 
 volumes:
