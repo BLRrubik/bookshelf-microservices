@@ -1,5 +1,7 @@
 package domain
 
+import "time"
+
 type BookSummary struct {
 	ID       string
 	Title    string
@@ -9,6 +11,18 @@ type BookSummary struct {
 }
 
 type RecentReview struct {
+	ID        string
+	BookID    string
+	BookTitle string
+	Rating    int
+	Content   string
+	User      UserInfo
+	CreatedAt time.Time
+}
+
+type UserInfo struct {
+	ID       string
+	Username string
 }
 
 type UserStats struct {

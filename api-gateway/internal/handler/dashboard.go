@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"unicode/utf8"
 )
 
 type DashboardHandler struct {
@@ -89,6 +90,92 @@ func (h *DashboardHandler) fetchPopularBooks(ctx context.Context, token string) 
 	}
 
 	return books
+}
+
+type reviewsResponse struct {
+	Data []struct {
+		ID        string    `json:"id"`
+		BookID    string    `json:"book_id"`
+		Rating    int       `json:"rating"`
+		Content   string    `json:"content"`
+		CreatedAt time.Time `json:"created_at"`
+		User      struct {
+			ID       string `json:"id"`
+			Username string `json:"username"`
+		} `json:"user"`
+	} `json:"data"`
+}
+
+func (h *DashboardHandler) fetchRecentReviews(ctx context.Context, token string) []domain.RecentReview {
+	headers := map[string]string{
+		"Content-Type":  "application/json",
+		"Authorization": token,
+	}
+
+	code, body, err := h.proxy.GetWithCacheBooksPath(ctx, "/api/v1/books?limit=10", headers)
+	if err != nil {
+		return nil
+	}
+
+	if code != http.StatusOK {
+		return nil
+	}
+
+	var books []domain.BookSummary
+	if err = json.Unmarshal(body, &books); err != nil {
+		return nil
+	}
+
+	result := []domain.RecentReview{}
+
+	for _, book := range books {
+		if len(result) >= 10 {
+			break
+		}
+
+		rCode, rBody, rErr := h.proxy.GetWithCacheBooksPath(
+			ctx, "/api/v1/books/"+book.ID+"/reviews?limit=3", headers,
+		)
+		if rErr != nil || rCode != http.StatusOK {
+			continue
+		}
+
+		var reviews reviewsResponse
+		if err = json.Unmarshal(rBody, &reviews); err != nil {
+			continue
+		}
+
+		for _, rv := range reviews.Data {
+			if len(result) >= 10 {
+				break
+			}
+
+			result = append(result, domain.RecentReview{
+				ID:        rv.ID,
+				BookID:    rv.BookID,
+				BookTitle: book.Title,
+				Rating:    rv.Rating,
+				Content:   truncateContent(rv.Content, 200),
+				User: domain.UserInfo{
+					ID:       rv.User.ID,
+					Username: rv.User.Username,
+				},
+				CreatedAt: rv.CreatedAt,
+			})
+		}
+	}
+
+	return result
+}
+
+func truncateContent(content string, maxRunes int) string {
+	if utf8.RuneCountInString(content) <= maxRunes {
+		return content
+	}
+
+	runes := []rune(content)
+
+	return string(runes[:maxRunes]) + "..."
 }
 
 type paginatedResponse struct {
