@@ -16,18 +16,20 @@ type Handler struct {
 	booksHandler     *BooksHandler
 	reviewsHandler   *ReviewsHandler
 	dashboardHandler *DashboardHandler
+	healthHandler    *HealthHandler
 
 	generalCache    func(http.Handler) http.Handler
 	booksListCache  func(http.Handler) http.Handler
 	bookDetailCache func(http.Handler) http.Handler
 }
 
-func NewHandler(p *proxy.ServiceProxy, c *cache.Cache, ttl time.Duration) *Handler {
+func NewHandler(p *proxy.ServiceProxy, c *cache.Cache, ttl time.Duration, version string) *Handler {
 	return &Handler{
 		authHandler:      NewAuthHandler(p),
 		booksHandler:     NewBooksHandler(p, c),
 		reviewsHandler:   NewReviewsHandler(p),
 		dashboardHandler: NewDashboardHandler(p, c, ttl),
+		healthHandler:    NewHealthHandler(c, p, version),
 
 		generalCache: middleware.CacheMiddleware(&middleware.CacheConfig{
 			Cache:     c,
@@ -48,9 +50,8 @@ func NewHandler(p *proxy.ServiceProxy, c *cache.Cache, ttl time.Duration) *Handl
 }
 
 func (h *Handler) RegisterRoutes(r chi.Router) {
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
+	r.Get("/health", h.healthHandler.Health)
+	r.Get("/ready", h.healthHandler.Ready)
 
 	r.Get("/api/v1/dashboard", h.dashboardHandler.GetDashboard)
 	r.Get("/api/v1/search", h.dashboardHandler.GlobalSearch)

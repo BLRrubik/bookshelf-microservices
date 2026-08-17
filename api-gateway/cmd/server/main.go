@@ -47,7 +47,7 @@ func main() {
 	rateLimiter := ratelimit.New(redisClient, 60*time.Second)
 
 	proxyService := proxy.New(cfg.AuthServiceURL, cfg.BooksServiceURL, cfg.ServiceKey)
-	handlers := handler.NewHandler(proxyService, cacheClient, time.Minute)
+	handlers := handler.NewHandler(proxyService, cacheClient, time.Minute, cfg.Version)
 
 	r := chi.NewRouter()
 

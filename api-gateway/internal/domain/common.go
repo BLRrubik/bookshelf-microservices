@@ -1,5 +1,14 @@
 package domain
 
+import "time"
+
+type HealthResponse struct {
+	Status    string            `json:"status"`
+	Version   string            `json:"version"`
+	Timestamp time.Time         `json:"timestamp"`
+	Checks    map[string]string `json:"checks"`
+}
+
 type ErrorResponse struct {
 	Code      string        `json:"code"`
 	Message   string        `json:"message"`

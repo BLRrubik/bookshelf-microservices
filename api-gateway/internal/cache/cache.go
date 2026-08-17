@@ -18,6 +18,10 @@ func New(client *redis.Client) *Cache {
 	return &Cache{client: client}
 }
 
+func (c *Cache) Ping(ctx context.Context) error {
+	return c.client.Ping(ctx).Err()
+}
+
 func (c *Cache) Get(ctx context.Context, key string) ([]byte, error) {
 	res := c.client.Get(ctx, key)
 	if res.Err() != nil {

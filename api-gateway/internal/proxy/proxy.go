@@ -118,6 +118,37 @@ func (p *ServiceProxy) ProxyRequest(w http.ResponseWriter, r *http.Request, targ
 	return response.StatusCode
 }
 
+func (p *ServiceProxy) CheckAuthService(ctx context.Context) error {
+	return p.HealthCheck(ctx, p.authServiceURL)
+}
+
+func (p *ServiceProxy) CheckBooksService(ctx context.Context) error {
+	return p.HealthCheck(ctx, p.booksServiceURL)
+}
+
+// HealthCheck queries {baseURL}/health and reports an error unless the
+// upstream service responds with 200 OK before ctx's deadline.
+func (p *ServiceProxy) HealthCheck(ctx context.Context, baseURL string) error {
+	url := strings.TrimRight(baseURL, "/") + "/health"
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return fmt.Errorf("create health check request: %w", err)
+	}
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return fmt.Errorf("health check request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("health check: unexpected status %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
 func (p *ServiceProxy) GetWithCacheBooksPath(
 	ctx context.Context,
 	url string,

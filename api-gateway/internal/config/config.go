@@ -9,6 +9,7 @@ type Config struct {
 	LogFormat       string
 	RedisURL        string
 	ServiceKey      string
+	Version         string
 }
 
 func Load() *Config {
@@ -19,6 +20,7 @@ func Load() *Config {
 		LogFormat:       os.Getenv("LOG_FORMAT"),
 		RedisURL:        os.Getenv("REDIS_URL"),
 		ServiceKey:      os.Getenv("SERVICE_KEY"),
+		Version:         os.Getenv("APP_VERSION"),
 	}
 
 	config.normalize()
@@ -49,5 +51,9 @@ func (c *Config) normalize() {
 
 	if c.ServiceKey == "" {
 		c.ServiceKey = "serviceKey"
+	}
+
+	if c.Version == "" {
+		c.Version = "1.0.0"
 	}
 }
